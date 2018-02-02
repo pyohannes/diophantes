@@ -11,6 +11,7 @@
     [dexpr->sexpr   (-> dexpr? any/c)]
     [dexpr-children (-> dexpr? (listof dexpr?))]
     [dexpr-<        (-> dexpr? dexpr? boolean?)]
+    [dexpr->latex   (-> dexpr? string?)]
     ))
 
 ;; ---------------------------------
@@ -22,5 +23,6 @@
   (dexpr->sexpr dexpr)
   (dexpr-children dexpr)
   (dexpr-< dexpr d)
+  (dexpr->latex dexpr)
   #:fallbacks
   [(define (dexpr-children dexpr) '())])
