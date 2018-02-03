@@ -1,0 +1,32 @@
+body {
+    margin: 0 auto;
+    text-align: center;
+}
+
+table {
+    margin: 0 auto;
+    margin-top: 2em;
+}
+
+input[type=submit] {
+    background: green;
+    font-weight: bold;
+    color: white;
+    height: 3em;
+    width: 3em;
+    border: 0;
+}
+
+input[type=text] {
+    height: 3em;
+    width: 40%;
+}
+
+td.caption {
+    font-size: small;
+}
+
+
+td.formula {
+    text-align: center;
+}
