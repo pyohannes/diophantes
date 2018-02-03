@@ -43,11 +43,12 @@
     formula = encodeURIComponent(formula);
     location.href = location.pathname + '?' + formula;
     ")
-  `(form ((action ,js/submit))
+  `(div
      (input ((type "text")
              (id "formula")
              (value ,formula)))
      (input ((type "submit")
+             (onclick ,js/submit)
              (value ">")))))
 
 (define (<formulaoutput> formula)
@@ -58,7 +59,8 @@
     (<f/tablerow> "Input" formula)
     (<f/tablerow> "Formula" (format-math (dexpr->latex f/dexpr)))
     (if (not (equal? f/dexpr f/dexpr-simple))
-        (<f/tablerow> "Formula" (format-math (dexpr->latex f/dexpr-simple)))
+        (<f/tablerow> "Simplified formula" 
+                      (format-math (dexpr->latex f/dexpr-simple)))
         '())))
 
 (define (<f/tablerow> caption text)
