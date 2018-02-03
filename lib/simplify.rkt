@@ -60,6 +60,9 @@
   (check-simplify '(+ 1 a 1) '(+ a 2))
   (check-simplify '(* 1 a 1) 'a)
   (check-simplify '(+ a 1 a) '(+ (* 2 a) 1))
+  (check-simplify '(+ 1 (* a a)) '(+ (expt a 2) 1))
+  (check-simplify '(* 2 (* a a)) '(* 2 (expt a 2)))
+  (check-simplify '(expt b (* a a)) '(expt b (expt a 2)))
   )
 
 (define (dexpr-simplify dexpr)
@@ -83,6 +86,7 @@
            simplify/mul-flatten))
         ((dexpr-expt? dexpr)
          (simplify-apply dexpr
+           simplify/expt-children
            simplify/expt-num
            simplify/expt-0-1))
         (else
@@ -110,6 +114,7 @@
   (define (%simplify es)
     (if (dexpr-add? es)
       (simplify-apply es
+        simplify/add-children
         simplify/add-num
         simplify/add-0
         simplify/add-sym)
@@ -167,6 +172,19 @@
       (dexpr-num (+ (dexpr-num-val add)
                     (dexpr-num-val aug)))
       e))
+
+; ---------------------
+; simplify-add-children
+; ---------------------
+
+(module+ test
+  (check-equal? (simplify/add-children (sexpr->dexpr '(+ 1 (* a a))))
+                (sexpr->dexpr '(+ 1 (expt a 2))))
+  )
+
+(define (simplify/add-children e)
+  (dexpr-add (dexpr-simplify (dexpr-add-add e))
+             (dexpr-simplify (dexpr-add-aug e))))
 
 ; ----------------
 ; simplify/add-sym
@@ -406,6 +424,19 @@
       (dexpr-num (expt (dexpr-num-val base) 
                        (dexpr-num-val power)))
       e))
+
+; ----------------------
+; simplify/expt-children
+; ----------------------
+
+(module+ test
+  (check-equal? (simplify/expt-children (sexpr->dexpr '(expt 2 (+ a a))))
+                (sexpr->dexpr '(expt 2 (* 2 a))))
+  )
+
+(define (simplify/expt-children e)
+  (dexpr-expt (dexpr-simplify (dexpr-expt-base e))
+              (dexpr-simplify (dexpr-expt-power e))))
 
 ; -----------------
 ; simplify/expt-0-1
