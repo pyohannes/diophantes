@@ -170,6 +170,10 @@
                 "3a")
   (check-equal? (dexpr->latex (sexpr->dexpr '(* 3 a b c)))
                 "3abc")
+  (check-equal? (dexpr->latex (sexpr->dexpr '(* a (+ b 2))))
+                "a(b + 2)")
+  (check-equal? (dexpr->latex (sexpr->dexpr '(* (+ a 1) (+ b 2))))
+                "(a + 1)(b + 2)")
   )
 
 (struct dexpr-mul (mpr mpd)
@@ -184,7 +188,7 @@
            (map dexpr->sexpr@super
                 (dexpr-flatten/pred dexpr-mul? e))))
    (define (dexpr->latex dexpr)
-     (string-join (map dexpr->latex@super 
+     (string-join (map dexpr->latex/paren
                        (dexpr-flatten/pred dexpr-mul? dexpr))
                   ""))
    ])
