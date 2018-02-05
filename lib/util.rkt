@@ -6,6 +6,7 @@
   dexpr-flatten
   dexpr-flatten/pred
   dexpr->latex/paren
+  dexpr->latex/paren/pred
   )
 
 ;; ---------------------------------
@@ -71,3 +72,24 @@
   (if (null? (dexpr-children e))
       estr
       (string-append "(" estr ")")))
+
+; -----------------------
+; dexpr->latex/paren/pred
+; -----------------------
+
+(module+ test
+  (check-equal? (dexpr->latex/paren (mock/num 3))
+                "3")
+  (check-equal? ((dexpr->latex/paren/pred mock/num?)
+                 (mock/add (mock/num 3) (mock/num 4)))
+                "3 + 4")
+  (check-equal? ((dexpr->latex/paren/pred mock/add?)
+                 (mock/add (mock/num 3) (mock/num 4)))
+                "(3 + 4)")
+  )
+
+(define (dexpr->latex/paren/pred pred?)
+  (lambda (e)
+    (if (pred? e)
+        (dexpr->latex/paren e)
+        (dexpr->latex e))))

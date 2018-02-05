@@ -174,6 +174,8 @@
                 "a(b + 2)")
   (check-equal? (dexpr->latex (sexpr->dexpr '(* (+ a 1) (+ b 2))))
                 "(a + 1)(b + 2)")
+  (check-equal? (dexpr->latex (sexpr->dexpr '(* (expt a 3) (expt b 2))))
+                "a^{3}b^{2}")
   )
 
 (struct dexpr-mul (mpr mpd)
@@ -188,7 +190,7 @@
            (map dexpr->sexpr@super
                 (dexpr-flatten/pred dexpr-mul? e))))
    (define (dexpr->latex dexpr)
-     (string-join (map dexpr->latex/paren
+     (string-join (map (dexpr->latex/paren/pred dexpr-add?)
                        (dexpr-flatten/pred dexpr-mul? dexpr))
                   ""))
    ])
@@ -227,4 +229,3 @@
                     (dexpr->latex@super (dexpr-expt-power dexpr))
                     "}"))
    ])
-
