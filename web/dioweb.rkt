@@ -61,7 +61,10 @@
     (if (not (equal? f/dexpr f/dexpr-simple))
         (<f/tablerow> "Simplified formula" 
                       (format-math (dexpr->latex f/dexpr-simple)))
-        '())))
+        '())
+    (<f/tablerow> "Derivative" 
+                  (format-math (dexpr-deriv->latex
+                                 (dexpr-deriv/auto f/dexpr-simple))))))
 
 (define (<f/tablerow> caption text)
   `(tr

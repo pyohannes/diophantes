@@ -7,10 +7,11 @@
 (provide
   gen:dexpr
   (contract-out
-    [dexpr?         (-> any/c boolean?)]
-    [dexpr->sexpr   (-> dexpr? any/c)]
-    [dexpr-children (-> dexpr? (listof dexpr?))]
-    [dexpr->latex   (-> dexpr? string?)]
+    [dexpr?              (-> any/c boolean?)]
+    [dexpr->sexpr        (-> dexpr? any/c)]
+    [dexpr-children      (-> dexpr? (listof dexpr?))]
+    [dexpr->latex        (-> dexpr? string?)]
+    [dexpr-differentiate (-> dexpr? dexpr? dexpr?)]
     ))
 
 ;; ---------------------------------
@@ -22,5 +23,6 @@
   (dexpr->sexpr dexpr)
   (dexpr-children dexpr)
   (dexpr->latex dexpr)
+  (dexpr-differentiate s dexpr)
   #:fallbacks
   [(define (dexpr-children dexpr) '())])

@@ -52,16 +52,31 @@
   (check-exn 
     exn:fail?
     (lambda () (sexpr->dexpr #t)))
+  (check-equal? (sexpr->dexpr '(- a b))
+                (dexpr-add (dexpr-sym 'a) 
+                           (dexpr-mul (dexpr-num -1) (dexpr-sym 'b))))
+  (check-equal? (sexpr->dexpr '(- a b c))
+                (dexpr-add (dexpr-sym 'a) 
+                           (dexpr-mul (dexpr-num -1) 
+                                      (dexpr-add (dexpr-sym 'b)
+                                                 (dexpr-sym 'c)))))
+  (check-equal? (sexpr->dexpr '(- a))
+                (dexpr-mul (dexpr-num -1) (dexpr-sym 'a)))
   )
 
 (define (sexpr->dexpr sexpr)
   (match sexpr
+    [(list '- first second rest ..1)
+     (sexpr->dexpr (list '- first (append (list '+ second) rest)))]
     [(list op first second rest ..1)
      (sexpr->dexpr (list op first (append (list op second) rest)))]
+    [(list '- first)
+     (sexpr->dexpr (list '* -1 first))]
     [(list op args ...)
      (apply (match op
               ['+ dexpr-add]
               ['* dexpr-mul]
+              ['- dexpr-sub]
               ['expt dexpr-expt])
             (map sexpr->dexpr args))]
     [(? number? n) 
@@ -83,6 +98,8 @@
 
   (check-equal? (dexpr->latex (dexpr-num 3))
                 "3")
+  (check-equal? (dexpr-differentiate (dexpr-sym 'x) (dexpr-num 3))
+                (dexpr-num 0))
   )
 
 (struct dexpr-num (val) 
@@ -92,6 +109,8 @@
      (dexpr-num-val e))
    (define (dexpr->latex dexpr)
      (number->string (dexpr-num-val dexpr)))
+   (define (dexpr-differentiate s dexpr)
+     (dexpr-num 0))
    ])
 
 ; ---------
@@ -106,6 +125,10 @@
 
   (check-equal? (dexpr->latex (dexpr-sym 'a))
                 "a")
+  (check-equal? (dexpr-differentiate (dexpr-sym 'x) (dexpr-sym 'x))
+                (dexpr-num 1))
+  (check-equal? (dexpr-differentiate (dexpr-sym 'x) (dexpr-sym 'y))
+                (dexpr-num 0))
   )
 
 (struct dexpr-sym (val) 
@@ -115,6 +138,10 @@
      (dexpr-sym-val e))
    (define (dexpr->latex dexpr)
      (symbol->string (dexpr-sym-val dexpr)))
+   (define (dexpr-differentiate s dexpr)
+     (if (equal? s dexpr)
+         (dexpr-num 1)
+         (dexpr-num 0)))
    ])
 
 ; ---------
@@ -134,6 +161,9 @@
                 "a + 3")
   (check-equal? (dexpr->latex (sexpr->dexpr '(+ a b c 3)))
                 "a + b + c + 3")
+  (check-equal? (dexpr-differentiate (dexpr-sym 'x) 
+                                     (sexpr->dexpr '(+ x 3)))
+                (sexpr->dexpr '(+ 1 0)))
   )
 
 (struct dexpr-add (add aug)
@@ -141,6 +171,7 @@
   #:methods gen:dexpr
   [(define/generic dexpr->sexpr@super dexpr->sexpr)
    (define/generic dexpr->latex@super dexpr->latex)
+   (define/generic dexpr-differentiate@super dexpr-differentiate)
    (define (dexpr-children e)
      (list (dexpr-add-add e) (dexpr-add-aug e)))
    (define (dexpr->sexpr e)
@@ -151,7 +182,27 @@
      (string-join 
        (map dexpr->latex@super (dexpr-flatten/pred dexpr-add? dexpr))
        " + "))
+   (define (dexpr-differentiate s dexpr)
+     (dexpr-add (dexpr-differentiate@super s (dexpr-add-add dexpr))
+                (dexpr-differentiate@super s (dexpr-add-aug dexpr))))
+
    ])
+
+; ---------
+; dexpr-sub
+; ---------
+;
+(module+ test
+  (check-equal? (dexpr-sub (dexpr-num 3) (dexpr-num 2))
+                (sexpr->dexpr '(+ 3 (* -1 2))))
+  (check-equal? (dexpr-sub (dexpr-num 3) (dexpr-sym 'a))
+                (sexpr->dexpr '(+ 3 (* -1 a))))
+  )
+
+(define (dexpr-sub str sth)
+  (dexpr-add str
+             (dexpr-mul (dexpr-num -1) 
+                        sth)))
 
 ; ---------
 ; dexpr-mul
@@ -176,6 +227,18 @@
                 "(a + 1)(b + 2)")
   (check-equal? (dexpr->latex (sexpr->dexpr '(* (expt a 3) (expt b 2))))
                 "a^{3}b^{2}")
+  (check-equal? (dexpr-differentiate (dexpr-sym 'x) 
+                                     (sexpr->dexpr '(* a x)))
+                (sexpr->dexpr '(+ (* 0 x)
+                                  (* a 1))))
+  (check-equal? (dexpr-differentiate (dexpr-sym 'x) 
+                                     (sexpr->dexpr '(* a (expt x 2))))
+                (sexpr->dexpr '(+ (* 0 (expt x 2))
+                                  (* a (* 2 (expt x (+ 2 -1)))))))
+  (check-equal? (dexpr-differentiate (dexpr-sym 'x) 
+                                     (sexpr->dexpr '(* 2 (expt x 2))))
+                (sexpr->dexpr '(+ (* 0 (expt x 2))
+                                  (* 2 (* 2 (expt x (+ 2 -1)))))))
   )
 
 (struct dexpr-mul (mpr mpd)
@@ -183,6 +246,7 @@
   #:methods gen:dexpr
   [(define/generic dexpr->sexpr@super dexpr->sexpr)
    (define/generic dexpr->latex@super dexpr->latex)
+   (define/generic dexpr-differentiate@super dexpr-differentiate)
    (define (dexpr-children e)
      (list (dexpr-mul-mpr e) (dexpr-mul-mpd e)))
    (define (dexpr->sexpr e)
@@ -193,6 +257,13 @@
      (string-join (map (dexpr->latex/paren/pred dexpr-add?)
                        (dexpr-flatten/pred dexpr-mul? dexpr))
                   ""))
+   (define (dexpr-differentiate s dexpr)
+     (define mpr (dexpr-mul-mpr dexpr))
+     (define mpd (dexpr-mul-mpd dexpr))
+     (define mpr/deriv (dexpr-differentiate@super s mpr))
+     (define mpd/deriv (dexpr-differentiate@super s mpd))
+     (dexpr-add (dexpr-mul mpr/deriv mpd)
+                (dexpr-mul mpr mpd/deriv)))
    ])
 
 ; ----------
@@ -211,6 +282,12 @@
                 "a^{3}")
   (check-equal? (dexpr->latex (sexpr->dexpr '(expt (+ x 1) (+ x 1))))
                 "(x + 1)^{x + 1}")
+  (check-equal? (dexpr-differentiate (dexpr-sym 'x) 
+                                     (sexpr->dexpr '(expt x 3)))
+                (sexpr->dexpr '(* 3 (expt x (+ 3 -1)))))
+  (check-equal? (dexpr-differentiate (dexpr-sym 'x) 
+                                     (sexpr->dexpr '(expt x y)))
+                (sexpr->dexpr '(* y (expt x (+ y -1)))))
   )
 
 (struct dexpr-expt (base power)
@@ -228,4 +305,13 @@
                     "^{"
                     (dexpr->latex@super (dexpr-expt-power dexpr))
                     "}"))
+   (define (dexpr-differentiate s dexpr)
+     (define base (dexpr-expt-base dexpr))
+     (define power (dexpr-expt-power dexpr))
+     (if (equal? s base)
+         (dexpr-mul power
+                    (dexpr-expt base
+                                (dexpr-add power
+                                           (dexpr-num -1))))
+         dexpr))
    ])
