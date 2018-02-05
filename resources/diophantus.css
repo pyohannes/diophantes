@@ -10,22 +10,24 @@ table {
 
 input[type=submit] {
     background: green;
-    font-weight: bold;
     color: white;
     height: 3em;
     width: 3em;
-    border: 0;
+    border: 1px solid green;
+    border-radius: 0 1em 1em 0;
 }
 
 input[type=text] {
     height: 3em;
     width: 40%;
+    border-radius: 1em 0 0 1em;
+    border: 1px solid green;
+    padding-left: 0.5em;
 }
 
 td.caption {
     font-size: small;
 }
-
 
 td.formula {
     text-align: center;
