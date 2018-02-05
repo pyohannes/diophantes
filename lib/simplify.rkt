@@ -11,6 +11,8 @@
 ;; ---------------------------------
 ;; Import and implementation section
 
+(require "sort.rkt")
+
 (module+ test
   (require rackunit)
 
@@ -63,6 +65,10 @@
   (check-simplify '(+ 1 (* a a)) '(+ (expt a 2) 1))
   (check-simplify '(* 2 (* a a)) '(* 2 (expt a 2)))
   (check-simplify '(expt b (* a a)) '(expt b (expt a 2)))
+  (check-simplify '(+ (* a b c a b) (* d d))
+                  '(+ (* (expt a 2) (expt b 2) c) (expt d 2)))
+  (check-simplify '(* 2 (+ a a))
+                  '(* 4 a))
   )
 
 (define (dexpr-simplify dexpr)
@@ -131,30 +137,7 @@
              mul-addables
              (map %simplify
                   (dexpr-flatten/pred dexpr-add? e))))
-      dexpr-add-<)))
-
-; -----------
-; dexpr-add-<
-; -----------
-
-(module+ test
-  (check-true  (dexpr-add-< (dexpr-num 1) (dexpr-num 2)))
-  (check-false (dexpr-add-< (dexpr-num 2) (dexpr-num 1)))
-  (check-true  (dexpr-add-< (dexpr-sym 'a) (dexpr-num 1)))
-  (check-false (dexpr-add-< (dexpr-num 1) (dexpr-sym 'a)))
-  (check-true  (dexpr-add-< (dexpr-sym 'a) (dexpr-sym 'b)))
-  (check-false (dexpr-add-< (dexpr-sym 'b) (dexpr-sym 'a)))
-  (check-true  (dexpr-add-< (sexpr->dexpr '(* 2 a)) (dexpr-num 3)))
-  (check-false (dexpr-add-< (dexpr-num 3) (sexpr->dexpr '(* 2 a))))
-  (check-true  (dexpr-add-< (sexpr->dexpr '(* 2 a)) (dexpr-sym 'b)))
-  (check-false (dexpr-add-< (dexpr-sym 'b) (sexpr->dexpr '(* 2 a))))
-  )
-
-(define (dexpr-add-< e1 e2)
-  (match (list (dexpr-num? e1) (dexpr-num? e2))
-    [(list #f #t) #t]
-    [(list #t #f) #f]
-    [_            (dexpr-< e1 e2)])) 
+      dexpr-<)))
 
 ; ----------------
 ; simplify/add-num
@@ -333,6 +316,19 @@
                       (dexpr-num-val mpd)))
         e)))
 
+; ---------------------
+; simplify-mul-children
+; ---------------------
+
+(module+ test
+  (check-equal? (simplify/mul-children (sexpr->dexpr '(* 2 (* a a))))
+                (sexpr->dexpr '(* 2 (expt a 2))))
+  )
+
+(define (simplify/mul-children e)
+  (dexpr-mul (dexpr-simplify (dexpr-mul-mpr e))
+             (dexpr-simplify (dexpr-mul-mpd e))))
+
 ; -----------------
 ; simplify/mul-expt
 ; -----------------
@@ -390,6 +386,7 @@
   (define (%simplify es)
     (if (dexpr-mul? es)
       (simplify-apply es
+        simplify/mul-children
         simplify/mul-num
         simplify/mul-0-1
         simplify/mul-expt)
@@ -406,7 +403,29 @@
              %mul-resolvable?
              (map %simplify
                   (dexpr-flatten/pred dexpr-mul? e))))
-      dexpr-<)))
+      dexpr-mul-<)))
+
+; -----------
+; dexpr-mul-<
+; -----------
+
+(module+ test
+  (check-false (dexpr-mul-< (dexpr-sym 'a) (dexpr-num 1)))
+  (check-true  (dexpr-mul-< (dexpr-num 1) (dexpr-sym 'a)))
+  (check-true  (dexpr-mul-< (dexpr-sym 'a) (dexpr-sym 'b)))
+  (check-false (dexpr-mul-< (dexpr-sym 'b) (dexpr-sym 'a)))
+  (check-false (dexpr-mul-< (sexpr->dexpr '(expt 2 a)) (dexpr-num 3)))
+  (check-true  (dexpr-mul-< (dexpr-num 3) (sexpr->dexpr '(expt 2 a))))
+  (check-true  (dexpr-mul-< (sexpr->dexpr '(expt 2 a)) (dexpr-sym 'b)))
+  (check-false (dexpr-mul-< (dexpr-sym 'b) (sexpr->dexpr '(expt 2 a))))
+  )
+
+(define (dexpr-mul-< e1 e2)
+  (match (list (dexpr-num? e1) (dexpr-num? e2))
+    [(list #f #t) #f]
+    [(list #t #f) #t]
+    [_            (dexpr-< e1 e2)])) 
+
 
 ; -----------------
 ; simplify/expt-num
