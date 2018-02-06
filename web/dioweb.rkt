@@ -14,12 +14,18 @@
 
 (define (<header>)
   (list 'head
+        (<icon> "diophantus_icon.png")
+        '(title "Diophantus")
         (<stylesheet> "diophantus.css")
         (<script> "https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.2/MathJax.js?config=TeX-MML-AM_CHTML")))
 
 (define (<stylesheet> href)
   `(link ((rel "stylesheet")
           (type "text/css")
+          (href ,href))))
+
+(define (<icon> href)
+  `(link ((rel "icon")
           (href ,href))))
 
 (define (<script> href)
@@ -67,9 +73,13 @@
                                  (dexpr-deriv/auto f/dexpr-simple))))))
 
 (define (<f/tablerow> caption text)
-  `(tr
-     (td ((class "caption")) ,caption)
-     (td ((class "formula")) ,text)))
+  `(div
+    (tr ((class "caption"))
+      (td ,caption)
+      (td))
+    (tr ((class "formula"))
+      (td)
+      (td ,text))))
 
 ; -----------------
 ; Utility functions

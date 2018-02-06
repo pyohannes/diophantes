@@ -25,10 +25,18 @@ input[type=text] {
     padding-left: 0.5em;
 }
 
-td.caption {
+table {
+    border-collapse: collapse;
+}
+
+tr.caption {
     font-size: small;
 }
 
-td.formula {
-    text-align: center;
+.caption td {
+    border-bottom: 1px solid green;
+}
+
+tr.formula {
+    text-align: left;
 }
