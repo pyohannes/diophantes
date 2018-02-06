@@ -14,6 +14,7 @@
   (struct-out dexpr-add)
   (struct-out dexpr-mul)
   (struct-out dexpr-expt)
+  (struct-out dexpr-log)
   )
 
 
@@ -62,6 +63,8 @@
                                                  (dexpr-sym 'c)))))
   (check-equal? (sexpr->dexpr '(- a))
                 (dexpr-mul (dexpr-num -1) (dexpr-sym 'a)))
+  (check-equal? (sexpr->dexpr '(ln x))
+                (dexpr-log (dexpr-num (exp 1)) (dexpr-sym 'x)))
   )
 
 (define (sexpr->dexpr sexpr)
@@ -72,12 +75,15 @@
      (sexpr->dexpr (list op first (append (list op second) rest)))]
     [(list '- first)
      (sexpr->dexpr (list '* -1 first))]
+    [(list 'ln first)
+     (sexpr->dexpr (list 'logn (exp 1) first))]
     [(list op args ...)
      (apply (match op
               ['+ dexpr-add]
               ['* dexpr-mul]
               ['- dexpr-sub]
-              ['expt dexpr-expt])
+              ['expt dexpr-expt]
+              ['logn dexpr-log])
             (map sexpr->dexpr args))]
     [(? number? n) 
      (dexpr-num n)]
@@ -314,4 +320,65 @@
                                 (dexpr-add power
                                            (dexpr-num -1))))
          dexpr))
+   ])
+
+; ---------
+; dexpr-log
+; ---------
+
+(module+ test
+  (check-equal? (dexpr-children (dexpr-log (dexpr-num (exp 1))
+                                           (dexpr-sym 'x)))
+                (list (dexpr-num (exp 1)) (dexpr-sym 'x)))
+  (check-equal? (dexpr->sexpr (dexpr-log (dexpr-num (exp 1))
+                                         (dexpr-sym 'x)))
+                '(ln x))
+  (check-equal? (dexpr->latex (dexpr-log (dexpr-num (exp 1))
+                                         (dexpr-sym 'x)))
+                "\\ln x")
+  (check-equal? (dexpr-differentiate (dexpr-sym 'x) 
+                                     (dexpr-log (dexpr-num (exp 1))
+                                                (dexpr-sym 'x)))
+                (dexpr-mul (dexpr-num 1)
+                           (dexpr-expt (dexpr-sym 'x)
+                                       (dexpr-num -1))))
+  )
+
+(struct dexpr-log (base n)
+  #:transparent
+  #:methods gen:dexpr
+  [(define/generic dexpr->sexpr@super dexpr->sexpr)
+   (define/generic dexpr->latex@super dexpr->latex)
+   (define/generic dexpr-differentiate@super dexpr-differentiate)
+   (define (dexpr-children e)
+     (list (dexpr-log-base e) (dexpr-log-n e)))
+   (define (dexpr->sexpr e)
+     (define sexpr-n (dexpr->sexpr@super (dexpr-log-n e)))
+     (define base (dexpr-log-base e))
+     (cond ((equal? base (dexpr-num (exp 1)))
+            (list 'ln sexpr-n))
+           (else
+             (list 'logn (dexpr->sexpr@super base) sexpr-n))))
+   (define (dexpr->latex e)
+     (define base (dexpr-log-base e))
+     (define n (dexpr-log-n e))
+     (define logop
+       (cond ((equal? base (dexpr-num (exp 1)))
+              "\\ln")
+             (else
+               (string-append "\\log_{"
+                              (dexpr->latex@super n)
+                              "}"))))
+     (string-append logop
+                    " "
+                    (dexpr->latex/paren n)))
+   (define (dexpr-differentiate s dexpr)
+     (define base (dexpr-log-base dexpr))
+     (define n (dexpr-log-n dexpr))
+     (cond ((equal? base (dexpr-num (exp 1)))
+            (dexpr-mul (dexpr-differentiate@super s n)
+                       (dexpr-expt n
+                                   (dexpr-num -1))))
+           (else
+             (error "Not implemented"))))
    ])
