@@ -17,6 +17,7 @@
          "util.rkt"
          "sort.rkt"
          "dexprgen.rkt"
+         "latex.rkt"
          "simplify.rkt")
 
 (struct dexpr-deriv (respect deriv)
@@ -35,6 +36,18 @@
   (check-equal? (dexpr-deriv/auto (sexpr->dexpr '(+ (expt x 3) (* 2 x))))
                 (dexpr-deriv (dexpr-sym 'x)
                              (sexpr->dexpr '(+ (* 3 (expt x 2)) 2))))
+  (check-equal? (dexpr-deriv/auto (sexpr->dexpr '(expt (+ x 1 ) 2)))
+                (dexpr-deriv (dexpr-sym 'x)
+                             (sexpr->dexpr '(* 2 (+ x 1)))))
+  (check-equal? (dexpr-deriv/auto (sexpr->dexpr '(* 2 (expt x 2))))
+                (dexpr-deriv (dexpr-sym 'x)
+                             (sexpr->dexpr '(* 4 x))))
+  (check-equal? (dexpr-deriv/auto (sexpr->dexpr '(* z (expt x 2))))
+                (dexpr-deriv (dexpr-sym 'x)
+                             (sexpr->dexpr '(* 2 x z))))
+  (check-equal? (dexpr-deriv/auto (sexpr->dexpr '(expt x y)))
+                (dexpr-deriv (dexpr-sym 'x)
+                             (sexpr->dexpr '(* (expt x (+ y -1)) y))))
   )
 
 (define (dexpr-deriv/auto dexpr)

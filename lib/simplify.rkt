@@ -6,6 +6,7 @@
 
 (provide 
   (contract-out 
+    [sexpr->dexpr/s     (-> any/c dexpr?)]
     [dexpr-simplify     (-> dexpr? dexpr?)]))
 
 ;; ---------------------------------
@@ -16,16 +17,26 @@
 (module+ test
   (require rackunit)
 
-  (define (check-simplify s:in s:simple)
-    (check-equal? (dexpr->sexpr (dexpr-simplify (sexpr->dexpr s:in)))
-                  s:simple))
+  (check-equal? (sexpr->dexpr/s '(+ 3 4))
+                (sexpr->dexpr/s '(+ 4 3)))
   )
+
+; --------------
+; sexpr->dexpr/s
+; --------------
+
+(define (sexpr->dexpr/s sexpr)
+  (dexpr-simplify (sexpr->dexpr sexpr)))
 
 ; --------------
 ; dexpr-simplify
 ; --------------
 
 (module+ test
+
+  (define (check-simplify s:in s:simple)
+    (check-equal? (dexpr->sexpr (sexpr->dexpr/s s:in))
+                  s:simple))
 
   ;; 1. Solve solvable arithmetic operations.
   (check-simplify '(+ 1 1) 2)

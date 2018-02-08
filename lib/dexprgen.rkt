@@ -10,8 +10,8 @@
     [dexpr?              (-> any/c boolean?)]
     [dexpr->sexpr        (-> dexpr? any/c)]
     [dexpr-children      (-> dexpr? (listof dexpr?))]
-    [dexpr->latex        (-> dexpr? string?)]
     [dexpr-differentiate (-> dexpr? dexpr? dexpr?)]
+    [dexpr-negative?     (-> dexpr? boolean?)]
     ))
 
 ;; ---------------------------------
@@ -22,7 +22,9 @@
 (define-generics dexpr
   (dexpr->sexpr dexpr)
   (dexpr-children dexpr)
-  (dexpr->latex dexpr)
   (dexpr-differentiate s dexpr)
+  (dexpr-negative? dexpr)
   #:fallbacks
-  [(define (dexpr-children dexpr) '())])
+  [(define (dexpr-children dexpr) '())
+   (define (dexpr-negative? dexpr) #f)
+  ])

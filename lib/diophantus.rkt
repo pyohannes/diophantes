@@ -2,8 +2,10 @@
 
 (require "dexpr.rkt"
          "simplify.rkt"
+         "latex.rkt"
          "derivate.rkt")
 
 (provide (all-from-out "dexpr.rkt")
          (all-from-out "simplify.rkt")
+         (all-from-out "latex.rkt")
          (all-from-out "derivate.rkt"))
