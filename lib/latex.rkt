@@ -127,8 +127,8 @@
 
 (define (dexpr-mul->latex dexpr)
   (define exprs (dexpr-flatten/pred dexpr-mul? dexpr))
-  (define exprs+ (filter positive-exponent? exprs))
-  (define exprs- (filter (negate positive-exponent?) exprs))
+  (define exprs+ (filter (negate negative-exponent?) exprs))
+  (define exprs- (filter negative-exponent? exprs))
   (define exprs-/
     (map (lambda (x)
            (define base (dexpr-expt-base x))
@@ -179,18 +179,22 @@
                 "a^{3}")
   (check-equal? (dexpr->latex (sexpr->dexpr '(expt (+ x 1) (+ x 1))))
                 "(x + 1)^{x + 1}")
+  (check-equal? (dexpr->latex (sexpr->dexpr '(expt x -z)))
+                "\\frac{1}{x^{z}}")
+  (check-equal? (dexpr->latex (sexpr->dexpr '(expt x (- -z 1))))
+                "\\frac{1}{x^{z + 1}}")
   )
 
 (define (dexpr-expt->latex dexpr)
   (define base (dexpr-expt-base dexpr))
   (define power (dexpr-expt-power dexpr))
-  (cond ((and (dexpr-num? power)
-              (< (dexpr-num-val power) 0))
+  (cond ((negative-exponent? dexpr)
          (latex/fraction "1"
                          (dexpr->latex
                            (dexpr-simplify
                              (dexpr-expt base 
-                                         (dexpr-num (abs (dexpr-num-val power))))))))
+                                         (dexpr-mul (dexpr-num -1) 
+                                                    power))))))
         (else
               (string-append (dexpr->latex/paren base)
                              "^{"
@@ -222,21 +226,30 @@
                  (dexpr->latex/paren n)))
 
 ; ------------------
-; positive-exponent?
+; negative-exponent?
 ; ------------------
 
 (module+ test
-  (check-true  (positive-exponent? (sexpr->dexpr '(expt x (- y 1)))))
-  (check-false (positive-exponent? (sexpr->dexpr '(expt x -3))))
+  (check-false (negative-exponent? (sexpr->dexpr '(expt x (- y 1)))))
+  (check-true  (negative-exponent? (sexpr->dexpr '(expt x -3))))
+  (check-true  (negative-exponent? (sexpr->dexpr '(expt x -y))))
+  (check-true  (negative-exponent? (sexpr->dexpr '(expt x (- -z 1)))))
   )
 
-(define (positive-exponent? dexpr)
+(define (negative-exponent? dexpr)
+  (define (negative? dexpr)
+    (or (and (dexpr-num? dexpr)
+             (<= (dexpr-num-val dexpr) 0))
+        (and (dexpr-mul? dexpr)
+             (dexpr-num? (dexpr-mul-mpr dexpr))
+             (< (dexpr-num-val (dexpr-mul-mpr dexpr)) 0))
+        (and (dexpr-add? dexpr)
+             (negative? (dexpr-add-add dexpr)))))
   (cond ((not (dexpr-expt? dexpr))
-         #t)
+         #f)
         (else
           (define power (dexpr-expt-power dexpr))
-          (not (and (dexpr-num? power)
-                    (<= (dexpr-num-val power) 0))))))
+          (negative? power))))
 
 ; -----------------
 ; dexpr-latex/paren

@@ -75,13 +75,21 @@
   (check-simplify '(+ a 1 a) '(+ (* 2 a) 1))
   (check-simplify '(+ 1 (* a a)) '(+ (expt a 2) 1))
   (check-simplify '(* 2 (* a a)) '(* 2 (expt a 2)))
-  (check-simplify '(expt b (* a a)) '(expt b (expt a 2)))
+  (check-simplify '(expt b (* a a)) '(expt b (* 2 a)))
   (check-simplify '(+ (* a b c a b) (* d d))
                   '(+ (* (expt a 2) (expt b 2) c) (expt d 2)))
   (check-simplify '(* 2 (+ a a))
                   '(* 4 a))
   (check-simplify '(expt (* x y) 3)
                   '(* (expt x 3) (expt y 3)))
+  (check-simplify '(expt (/ 1 x) 2)
+                  '(expt x -2))
+  (check-simplify '(expt (/ x y) 3)
+                  '(* (expt x 3) (expt y -3)))
+  (check-simplify '(expt (expt x 3) 2)
+                  '(expt x 6))
+  (check-simplify '(* -1 (- -z 1))
+                  '(+ z 1))
   )
 
 (define (dexpr-simplify dexpr)
@@ -108,7 +116,8 @@
            simplify/expt-children
            simplify/expt-num
            simplify/expt-0-1
-           simplify/expt-mul-base))
+           simplify/expt-mul-base
+           simplify/expt-power-nested))
         (else
           dexpr)))
 
@@ -297,6 +306,24 @@
           (else
             e))))
 
+; ------------------------
+; simplify/mul-minus-1-add
+; ------------------------
+
+(module+ test
+  (check-equal? (simplify/mul-minus-1-add (sexpr->dexpr '(* -1 (- -z 1))))
+                (sexpr->dexpr '(+ (* -1 -z) (* -1 (* -1 1)))))
+  )
+ 
+(define (simplify/mul-minus-1-add e)
+  (define mpr (dexpr-mul-mpr e))
+  (define mpd (dexpr-mul-mpd e))
+  (if (and (equal? (dexpr-num -1) mpr)
+           (dexpr-add? mpd))
+      (dexpr-add (dexpr-mul (dexpr-num -1) (dexpr-add-add mpd))
+                 (dexpr-mul (dexpr-num -1) (dexpr-add-aug mpd)))
+      e))
+
 ; ---------------
 ; %group-by-pred?
 ; ---------------
@@ -403,6 +430,7 @@
         simplify/mul-children
         simplify/mul-num
         simplify/mul-0-1
+        simplify/mul-minus-1-add
         simplify/mul-expt)
       es))
   (define (fold-mul es)
@@ -512,6 +540,43 @@
                       (dexpr-expt b power))))
         (else
           e)))
+
+; --------------------------
+; simplify/expt-power-nested
+; --------------------------
+
+(module+ test
+  (check-equal? (simplify/expt-power-nested 
+                  (sexpr->dexpr '(expt (expt x 2) 3)))
+                (sexpr->dexpr '(expt x (* 2 3))))
+  (check-equal? (simplify/expt-power-nested 
+                  (sexpr->dexpr '(expt (expt x a) 3)))
+                (sexpr->dexpr '(expt x (* a 3))))
+  (check-equal? (simplify/expt-power-nested 
+                  (sexpr->dexpr '(expt (expt x a) (expt 3 b))))
+                (sexpr->dexpr '(expt x (* a 3 b))))
+  )
+
+(define (simplify/expt-power-nested e)
+  (define (take-down-power e)
+    (if (dexpr-expt? e)
+        (dexpr-mul (dexpr-expt-base e)
+                   (take-down-power (dexpr-expt-power e)))
+        e))
+  (define (lift-up-power e)
+    (cond ((dexpr-expt? e)
+           (define base (lift-up-power (dexpr-expt-base e)))
+           (define power (dexpr-expt-power e))
+           (if (dexpr-expt? base)
+               (dexpr-expt (dexpr-expt-base base)
+                           (dexpr-mul (dexpr-expt-power base)
+                                      power))
+               e))
+          (else
+            e)))
+  (lift-up-power
+    (dexpr-expt (dexpr-expt-base e)
+                (take-down-power (dexpr-expt-power e)))))
 
 (require racket/contract
          racket/match
