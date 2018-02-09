@@ -80,6 +80,8 @@
                   '(+ (* (expt a 2) (expt b 2) c) (expt d 2)))
   (check-simplify '(* 2 (+ a a))
                   '(* 4 a))
+  (check-simplify '(expt (* x y) 3)
+                  '(* (expt x 3) (expt y 3)))
   )
 
 (define (dexpr-simplify dexpr)
@@ -105,7 +107,8 @@
          (simplify-apply dexpr
            simplify/expt-children
            simplify/expt-num
-           simplify/expt-0-1))
+           simplify/expt-0-1
+           simplify/expt-mul-base))
         (else
           dexpr)))
 
@@ -486,6 +489,29 @@
     [(dexpr-num 0) (dexpr-num 1)]
     [(dexpr-num 1) (dexpr-expt-base e)]
     [_             e]))
+
+; ----------------------
+; simplify/expt-mul-base
+; ----------------------
+
+(module+ test
+  (check-equal? (simplify/expt-mul-base (sexpr->dexpr '(expt (* x y) 3)))
+                (sexpr->dexpr '(* (expt x 3) (expt y 3))))
+  (check-equal? (simplify/expt-mul-base (sexpr->dexpr '(expt x 3)))
+                (sexpr->dexpr '(expt x 3)))
+  )
+
+(define (simplify/expt-mul-base e)
+  (define base (dexpr-expt-base e))
+  (define power (dexpr-expt-power e))
+  (cond ((dexpr-mul? base)
+         (define exprs (dexpr-flatten/pred dexpr-mul? base))
+         (for/fold ([expr (dexpr-expt (car exprs) power)])
+                   ([b (cdr exprs)])
+           (dexpr-mul expr
+                      (dexpr-expt b power))))
+        (else
+          e)))
 
 (require racket/contract
          racket/match
