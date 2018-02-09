@@ -15,7 +15,7 @@
 (define (<header>)
   (list 'head
         (<icon> "diophantus_icon.png")
-        '(title "Diophantus")
+        `(title ,(make-cdata #f #f "&Delta;iophantus"))
         (<stylesheet> "diophantus.css")
         (<script> "https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.2/MathJax.js?config=TeX-MML-AM_CHTML")))
 
@@ -39,7 +39,7 @@
         '()))
   (list-non-null
     'body
-    '(h1 'Delta "iophantus")
+    `(h1 ,(make-cdata #f #f "&Delta;iophantus"))
     (<formulainput> formula)
     formulaoutput))
 
@@ -62,24 +62,27 @@
   (define f/dexpr-simple (dexpr-simplify f/dexpr))
   (list-non-null
     'table
-    (<f/tablerow> "Input" formula)
-    (<f/tablerow> "Formula" (format-math (dexpr->latex f/dexpr)))
-    (if (not (equal? f/dexpr f/dexpr-simple))
-        (<f/tablerow> "Simplified formula" 
-                      (format-math (dexpr->latex f/dexpr-simple)))
-        '())
-    (<f/tablerow> "Derivative" 
-                  (format-math (dexpr-deriv->latex
-                                 (dexpr-deriv/auto f/dexpr-simple))))))
+    (<caption/tablerow> "Input")
+    (<formula/tablerow> formula)
+    (<caption/tablerow> "Formula")
+    (<formula/tablerow> (format-math (dexpr->latex f/dexpr)))
+    (when (not (equal? f/dexpr f/dexpr-simple))
+        (<caption/tablerow> "Simplified formula"))
+    (when (not (equal? f/dexpr f/dexpr-simple))
+        (<formula/tablerow> (format-math (dexpr->latex f/dexpr-simple))))
+    (<caption/tablerow> "Derivative")
+    (<formula/tablerow> (format-math (dexpr-deriv->latex
+                                     (dexpr-deriv/auto f/dexpr-simple))))))
 
-(define (<f/tablerow> caption text)
-  `(div
-    (tr ((class "caption"))
-      (td ,caption)
-      (td))
-    (tr ((class "formula"))
+(define (<caption/tablerow> text)
+   `(tr ((class "caption"))
+      (td ,text)
+      (td)))
+
+(define (<formula/tablerow> text)
+   `(tr ((class "formula"))
       (td)
-      (td ,text))))
+      (td ,text)))
 
 ; -----------------
 ; Utility functions
@@ -97,7 +100,7 @@
 
 (define (list-non-null . args)
   (define (non-null? l)
-    (not (null? l)))
+    (not (or (null? l) (void? l))))
   (apply list
          (filter non-null? args)))
 
