@@ -42,6 +42,8 @@
                 (dexpr-num 2))
   (check-equal? (sexpr->dexpr 'a)
                 (dexpr-sym 'a))
+  (check-equal? (sexpr->dexpr '-a)
+                (dexpr-mul (dexpr-num -1) (dexpr-sym 'a)))
   (check-equal? (sexpr->dexpr '(+ a 1))
                 (dexpr-add (dexpr-sym 'a) (dexpr-num 1)))
   (check-equal? (sexpr->dexpr '(* a 1))
@@ -94,7 +96,7 @@
     [(? number? n) 
      (dexpr-num n)]
     [(? symbol? s) 
-     (dexpr-sym s)]
+     (dexpr-sym-make s)]
     [s
      (error "Error parsing expression" s)]))
 
@@ -124,6 +126,24 @@
    (define (dexpr-negative? dexpr)
      (< (dexpr-num-val dexpr) 0))
    ])
+
+; --------------
+; make-dexpr-sym
+; --------------
+
+(module+ test
+  (check-equal? (dexpr-sym-make 'a)
+                (dexpr-sym 'a))
+  (check-equal? (dexpr-sym-make '-a)
+                (dexpr-mul (dexpr-num -1 ) (dexpr-sym 'a)))
+  )
+
+(define (dexpr-sym-make s)
+  (define str (symbol->string s))
+  (if (string-startswith str "-")
+      (dexpr-mul (dexpr-num -1)
+                 (dexpr-sym-make (string->symbol (substring str 1))))
+      (dexpr-sym s)))
 
 ; ---------
 ; dexpr-sym

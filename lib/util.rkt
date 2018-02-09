@@ -6,6 +6,7 @@
   dexpr-flatten
   dexpr-flatten/pred
   negate
+  string-startswith
   )
 
 ;; ---------------------------------
@@ -68,3 +69,15 @@
   (define (negator . args)
     (not (apply f args)))
   negator)
+
+; -----------------
+; string-startswith
+; -----------------
+
+(module+ test
+  (check-true  (string-startswith "abcdefgh" "abc"))
+  (check-false (string-startswith "abcdefgh" "bc"))
+  )
+
+(define (string-startswith s prefix)
+  (string=? (substring s 0 (string-length prefix)) prefix))

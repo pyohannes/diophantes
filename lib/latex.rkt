@@ -167,8 +167,6 @@
                                      nominator)
                                  denom)))
 
-(define (string-startswith s prefix)
-  (string=? (substring s 0 (string-length prefix)) prefix))
 
 ; -----------------
 ; dexpr-expt->latex
