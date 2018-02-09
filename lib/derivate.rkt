@@ -48,6 +48,9 @@
   (check-equal? (dexpr-deriv/auto (sexpr->dexpr '(expt x y)))
                 (dexpr-deriv (dexpr-sym 'x)
                              (sexpr->dexpr '(* (expt x (+ y -1)) y))))
+  (check-equal? (dexpr-deriv/auto (sexpr->dexpr '(expt (+ x 2) z)))
+                (dexpr-deriv (dexpr-sym 'x)
+                             (sexpr->dexpr '(* (expt (+ x 2) (+ z -1)) z))))
   )
 
 (define (dexpr-deriv/auto dexpr)

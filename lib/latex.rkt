@@ -121,6 +121,8 @@
                 "-\\frac{x}{y}")
   (check-equal? (dexpr->latex (sexpr->dexpr '(* (* -1 x) (* -1 y))))
                 "xy")
+  (check-equal? (dexpr->latex (sexpr->dexpr '(* z (expt x (- z 1)))))
+                "zx^{z -1}")
   )
 
 (define (dexpr-mul->latex dexpr)
@@ -223,13 +225,18 @@
 ; positive-exponent?
 ; ------------------
 
+(module+ test
+  (check-true  (positive-exponent? (sexpr->dexpr '(expt x (- y 1)))))
+  (check-false (positive-exponent? (sexpr->dexpr '(expt x -3))))
+  )
+
 (define (positive-exponent? dexpr)
   (cond ((not (dexpr-expt? dexpr))
          #t)
         (else
           (define power (dexpr-expt-power dexpr))
-          (and (dexpr-num? power)
-               (>= (dexpr-num-val power) 0)))))
+          (not (and (dexpr-num? power)
+                    (<= (dexpr-num-val power) 0))))))
 
 ; -----------------
 ; dexpr-latex/paren
