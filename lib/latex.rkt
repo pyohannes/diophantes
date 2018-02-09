@@ -85,12 +85,20 @@
                 "a + 3")
   (check-equal? (dexpr->latex (sexpr->dexpr '(+ a b c 3)))
                 "a + b + c + 3")
+  (check-equal? (dexpr->latex (sexpr->dexpr '(+ x -3)))
+                "x -3")
   )
 
 (define (dexpr-add->latex dexpr)
-  (string-join
-    (map dexpr->latex (dexpr-flatten/pred dexpr-add? dexpr))
-    " + "))
+  (define latex
+    (map dexpr->latex (dexpr-flatten/pred dexpr-add? dexpr)))
+  (for/fold ([s (car latex)])
+            ([l (cdr latex)])
+    (string-append s
+                   (if (string-startswith l "-")
+                       " "
+                       " + ")
+                   l)))
 
 ; ----------------
 ; dexpr-mul->latex
