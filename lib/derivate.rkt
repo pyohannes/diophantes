@@ -51,6 +51,9 @@
   (check-equal? (dexpr-deriv/auto (sexpr->dexpr '(expt (+ x 2) z)))
                 (dexpr-deriv (dexpr-sym 'x)
                              (sexpr->dexpr '(* (expt (+ x 2) (+ z -1)) z))))
+  (check-equal? (dexpr-deriv/auto (sexpr->dexpr '(* a (expt x 2))))
+                (dexpr-deriv (dexpr-sym 'x)
+                             (sexpr->dexpr '(* 2 a x))))
   )
 
 (define (dexpr-deriv/auto dexpr)
@@ -82,12 +85,17 @@
 (module+ test
   (check-equal? (dexpr-smallest-sym (sexpr->dexpr '(* (+ x 3) (expt y 4) z)))
                 (dexpr-sym 'x))
+  (check-equal? (dexpr-smallest-sym (sexpr->dexpr '(* a x z)))
+                (dexpr-sym 'x))
+  (check-equal? (dexpr-smallest-sym (sexpr->dexpr '(* a z)))
+                (dexpr-sym 'a))
   )
 
 (define (dexpr-smallest-sym dexpr)
-  (car
-    (sort
-      (for/list ([c (dexpr-flatten dexpr)]
-                 #:when (dexpr-sym? c))
-        c)
-      dexpr-<)))
+  (define syms
+    (for/list ([c (dexpr-flatten dexpr)]
+               #:when (dexpr-sym? c))
+      c))
+  (if (member (dexpr-sym 'x) syms)
+      (dexpr-sym 'x)
+      (car (sort syms dexpr-<))))
