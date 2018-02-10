@@ -6,6 +6,7 @@
 
 (provide
   (contract-out
+    [dexpr-deriv-deriv           (-> dexpr-deriv? dexpr?)]
     [dexpr-deriv/auto            (-> dexpr? dexpr-deriv?)]
     [dexpr-deriv->latex          (-> dexpr-deriv? string?)]
   ))

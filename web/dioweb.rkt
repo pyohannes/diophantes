@@ -2,6 +2,7 @@
 
 (require xml
          racket/string
+         racket/format
          "../lib/diophantus.rkt")
 
 ; ---------------------------------------
@@ -16,6 +17,12 @@
   (list 'head
         (<icon> "diophantus_icon.png")
         `(title ,(make-cdata #f #f "&Delta;iophantus"))
+        `(script ((type "text/javascript"))
+           ,(make-cdata #f #f "
+              function diowebOpen(formula) {
+                  formula = encodeURIComponent(formula);
+                  location.href = location.pathname + '?' + formula;
+              }"))
         (<stylesheet> "diophantus.css")
         (<script> "https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.2/MathJax.js?config=TeX-MML-AM_CHTML")))
 
@@ -44,11 +51,7 @@
     formulaoutput))
 
 (define (<formulainput> formula)
-  (define js/submit "
-    formula = document.getElementById('formula').value;
-    formula = encodeURIComponent(formula);
-    location.href = location.pathname + '?' + formula;
-    ")
+  (define js/submit "diowebOpen(document.getElementById('formula').value);")
   `(div
      (input ((type "text")
              (id "formula")
@@ -60,19 +63,22 @@
 (define (<formulaoutput> formula)
   (define f/dexpr (sexpr->dexpr (read (open-input-string formula))))
   (define f/dexpr-simple (dexpr-simplify f/dexpr))
+  (define f/dexpr-deriv (dexpr-deriv/auto f/dexpr-simple))
   (list-non-null
     'table
     (<caption/tablerow> "Input")
     (<formula/tablerow> formula)
     (<caption/tablerow> "Formula")
-    (<formula/tablerow> (format-math (dexpr->latex f/dexpr)))
+    (<formula/tablerow> (format-math (dexpr->latex f/dexpr)
+                                     f/dexpr))
     (when (not (equal? f/dexpr f/dexpr-simple))
         (<caption/tablerow> "Simplified formula"))
     (when (not (equal? f/dexpr f/dexpr-simple))
-        (<formula/tablerow> (format-math (dexpr->latex f/dexpr-simple))))
+        (<formula/tablerow> (format-math (dexpr->latex f/dexpr-simple)
+                                         f/dexpr-simple)))
     (<caption/tablerow> "Derivative")
-    (<formula/tablerow> (format-math (dexpr-deriv->latex
-                                     (dexpr-deriv/auto f/dexpr-simple))))))
+    (<formula/tablerow> (format-math (dexpr-deriv->latex f/dexpr-deriv)
+                                     (dexpr-deriv-deriv f/dexpr-deriv)))))
 
 (define (<caption/tablerow> text)
    `(tr ((class "caption"))
@@ -104,8 +110,16 @@
   (apply list
          (filter non-null? args)))
 
-(define (format-math f)
-  (string-append "$$" f "$$"))
+(define (format-math latex dexpr)
+  (define formula 
+    (string-append "$$" latex "$$"))
+  (define href
+    (string-append "javascript:diowebOpen('"
+                   (~a (dexpr->sexpr dexpr))
+                   "');"))
+  `(a ((href ,href)
+       (class "formula"))
+      ,formula))
 
 ; -----------------
 ; main invocation
