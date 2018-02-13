@@ -7,6 +7,7 @@
   dexpr-flatten/pred
   negate
   string-startswith
+  symbol->integer
   )
 
 ;; ---------------------------------
@@ -81,3 +82,21 @@
 
 (define (string-startswith s prefix)
   (string=? (substring s 0 (string-length prefix)) prefix))
+
+; ---------------
+; symbol->integer
+; ---------------
+
+(module+ test
+  (check-equal? (symbol->integer 'a)
+                97)
+  (check-equal? (symbol->integer 'ab)
+                24930)
+  (check-equal? (symbol->integer 'ba)
+                25185)
+  )
+
+(define (symbol->integer s)
+  (for/fold ([r 0])
+            ([char (string->list (symbol->string s))])
+    (+ (* r 256) (char->integer char))))

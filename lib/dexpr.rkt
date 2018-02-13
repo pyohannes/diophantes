@@ -116,7 +116,7 @@
   (check-false (dexpr-negative? (dexpr-num 1)))
   )
 
-(struct dexpr-num (val) 
+(struct dexpr-num (val)
   #:transparent
   #:methods gen:dexpr
   [(define (dexpr->sexpr e)
@@ -324,6 +324,9 @@
   (check-equal? (dexpr->sexpr (dexpr-log (dexpr-num (exp 1))
                                          (dexpr-sym 'x)))
                 '(ln x))
+  (check-equal? (dexpr->sexpr (dexpr-log (dexpr-num 2)
+                                         (dexpr-sym 'x)))
+                '(logn 2 x))
   (check-equal? (dexpr-differentiate (dexpr-sym 'x) 
                                      (dexpr-log (dexpr-num (exp 1))
                                                 (dexpr-sym 'x)))
