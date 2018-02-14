@@ -4,10 +4,11 @@
 
 (require racket/contract
          racket/generic
+         racket/set
          )
 
 (provide
-  sexpr->dexpr
+  sexpr->dexpr dexpr-linear? dexpr->lambda
   dexpr? dexpr->sexpr dexpr-children dexpr-negative?
   (struct-out dexpr-num)
   (struct-out dexpr-sym)
@@ -364,3 +365,53 @@
    (define (dexpr-negative? dexpr)
      (dexpr-negative?@super (dexpr-log-n dexpr)))
    ])
+
+; --------------
+; dexpr-all-syms
+; --------------
+
+(module+ test
+  (check-equal? (dexpr-all-syms (sexpr->dexpr '(+ x 1 y 3)))
+                '(x y))
+  (check-equal? (dexpr-all-syms (sexpr->dexpr '(+ (expt y x) a 3)))
+                '(a x y))
+  )
+
+(define (dexpr-all-syms dexpr)
+  (define syms (filter dexpr-sym? (dexpr-flatten dexpr)))
+  (define s/syms (map dexpr-sym-val syms))
+  (define s/syms/set (apply set s/syms))
+  (sort (set->list s/syms/set) symbol<?))
+
+; ------------
+; dexpr-linear
+; ------------
+
+(module+ test
+  (check-true  (dexpr-linear? (sexpr->dexpr '(+ x 1))))
+  (check-false (dexpr-linear? (sexpr->dexpr '(+ x y))))
+  (check-true  (dexpr-linear? 
+                 (sexpr->dexpr '(+ (expt y 3) (* (expt y 2) 3) 2))))
+  (check-false (dexpr-linear? 
+                 (sexpr->dexpr '(+ (expt y 3) (* (expt y 2) 3) a))))
+  )
+
+(define (dexpr-linear? dexpr)
+  (>= 1 (length (dexpr-all-syms dexpr))))
+
+; -------------
+; dexpr->lambda
+; -------------
+
+(module+ test
+  (check-equal? ((dexpr->lambda (sexpr->dexpr '(+ x 3))) 7)
+                10)
+  (check-equal? ((dexpr->lambda (sexpr->dexpr '(+ (expt x 2) (* 2 x)))) 3)
+                15))
+
+(define (dexpr->lambda dexpr)
+  (define expr 
+    (list 'lambda 
+          (dexpr-all-syms dexpr)
+          (dexpr->sexpr dexpr)))
+  (eval expr (make-base-namespace)))

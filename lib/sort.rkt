@@ -49,6 +49,10 @@
            (sexpr->dexpr '(ln b)))
   (check-< (sexpr->dexpr '(* a b c a b))
            (sexpr->dexpr '(expt d d)))
+  (check-< (sexpr->dexpr '(* a b c a b))
+           (sexpr->dexpr 'd))
+  (check-< (sexpr->dexpr 'a)
+           (sexpr->dexpr '(* b c b)))
   )
 
 (define (dexpr-< d1 d2)

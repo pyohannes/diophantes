@@ -41,6 +41,10 @@ tr.formula {
     text-align: left;
 }
 
+.formula td {
+    padding-top: 0.5em;
+}
+
 a.formula {
     color: black;
 }

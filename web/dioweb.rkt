@@ -76,6 +76,10 @@
     (when (not (equal? f/dexpr f/dexpr-simple))
         (<formula/tablerow> (format-math (dexpr->latex f/dexpr-simple)
                                          f/dexpr-simple)))
+    (when (dexpr-linear? f/dexpr-simple)
+        (<caption/tablerow> "Plot"))
+    (when (dexpr-linear? f/dexpr-simple)
+        (<formula/tablerow> (<img/png> (dexpr-plot-png f/dexpr-simple))))
     (<caption/tablerow> "Derivative")
     (<formula/tablerow> (format-math (dexpr-deriv->latex f/dexpr-deriv)
                                      (dexpr-deriv-deriv f/dexpr-deriv)))))
@@ -89,6 +93,11 @@
    `(tr ((class "formula"))
       (td)
       (td ,text)))
+
+(define (<img/png> data)
+  (sleep 100)
+  `(img ((src ,(string-append "data:image/png;base64,"
+                              data)))))
 
 ; -----------------
 ; Utility functions
