@@ -5,6 +5,7 @@
 (require racket/contract)
 
 (provide
+  negate
   (contract-out
     [list-trim-right        (-> list? any/c list?)]
     [list-trim-left         (-> list? any/c list?)]
@@ -46,3 +47,18 @@
          (list-trim-left (cdr l) token))
         (else
           l)))
+
+; ------
+; negate
+; ------
+
+(module+ test
+ (check-true  ((negate odd?) 2))
+ (check-false ((negate odd?) 3))
+ )
+
+(define (negate f)
+  (define (negator . args)
+    (not (apply f args)))
+  negator)
+

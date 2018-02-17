@@ -9,7 +9,6 @@
   (contract-out
     [algexpr?           (-> any/c boolean?)]
     [sexpr              (-> algexpr? any/c)]
-    [children           (-> algexpr? (listof algexpr?))]
     [differentiate      (-> algexpr? symbol? algexpr?)]
     [latex              (-> algexpr? string?)]
     [evaluate           (-> algexpr? (->* () #:rest (listof number?) number?))]

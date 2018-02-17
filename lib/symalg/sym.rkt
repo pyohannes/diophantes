@@ -7,7 +7,7 @@
 (provide
   (all-from-out "private/expr.rkt")
   (contract-out
-    [make-sym                (-> integer?  sym?)]
+    [make-sym                (-> symbol? sym?)]
   ))
 
 ;; ---------------------------------
