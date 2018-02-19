@@ -114,3 +114,14 @@
   (if (equal? (sym-val sm) s)
       (make-num 1)
       sm))
+
+;; ------------
+;; sym-simplify
+;; ------------
+
+(module+ test
+
+  ;; ASAE-3: u is a symbol.
+  (check-equal? (simplify (make-sym 'x))
+                (make-sym 'x))
+  )
