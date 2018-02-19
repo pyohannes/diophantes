@@ -149,13 +149,12 @@
   )
 
 (define (add-simplify a)
-  (for/fold ([a a])
-            ([op (list add-simplify/nested
-                       add-simplify/nums
-                       add-simplify/zero
-                       add-simplify/unary)])
-            #:break (not (add? a))
-    (op a)))
+  (apply-simplify a 
+                  add?  
+                  (list add-simplify/nested
+                        add-simplify/nums
+                        add-simplify/zero
+                        add-simplify/unary)))
 
 (define (add-simplify/nested a)
   (add
@@ -177,7 +176,7 @@
           a)))
 
 (define (add-simplify/zero a)
-  (add (filter (negate num-zero?)
+  (add (filter (negate zero?)
                (add-addends a))))
 
 (define (add-simplify/unary a)
