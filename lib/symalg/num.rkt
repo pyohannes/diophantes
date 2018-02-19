@@ -122,3 +122,14 @@
 
 (define (num-differentiate p s)
   (make-num 0))
+
+;; ------------
+;; num-simplify
+;; ------------
+
+(module+ test
+
+  ;; ASAE-1: u is an integer.
+  (check-equal? (simplify (make-num 3))
+                (make-num 3))
+  )
