@@ -8,7 +8,6 @@
   (all-from-out "private/expr.rkt")
   (contract-out
     [make-num                (-> integer?  num?)]
-    [num-zero?               (-> any/c boolean?)]
     [num?                    (-> any/c boolean?)]
     [num-val                 (-> num? integer?)]
   ))
@@ -47,6 +46,8 @@
     (num-latex n))
   (define (differentiate n s)
     (num-differentiate n s))
+  (define (zero? n)
+    (num-zero? n))
   ])
 
 ;; ---------
@@ -54,14 +55,12 @@
 ;; ---------
 
 (module+ test
-  (check-true  (num-zero? (make-num 0)))
-  (check-false (num-zero? (make-num 9)))
-  (check-false (num-zero? 0))
+  (check-true  (zero? (make-num 0)))
+  (check-false (zero? (make-num 9)))
   )
 
 (define (num-zero? n)
-  (and (num? n)
-       (= (num-val n) 0)))
+  (= (num-val n) 0))
 
 ;; ------------
 ;; num-evaluate

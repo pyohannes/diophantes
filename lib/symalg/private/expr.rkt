@@ -5,6 +5,7 @@
 (require racket/contract)
 
 (provide
+  zero?
   gen:algexpr
   (contract-out
     [algexpr?           (-> any/c boolean?)]
@@ -27,7 +28,9 @@
   (latex algexpr)
   (evaluate algexpr)
   (simplify algexpr)
+  (zero? algexpr)
   #:fallbacks
   [(define (children algexpr) '())
    (define (simplify algexpr) algexpr)
+   (define (zero? algexpr) #f)
   ])
