@@ -6,14 +6,14 @@
 
 (provide
   (all-from-out "private/expr.rkt")
-  (contract-out
-    [make-sym                (-> symbol? sym?)]
-  ))
+  make-sym
+  )
 
 ;; ---------------------------------
 ;; Import and implementation section
 
-(require "private/expr.rkt"
+(require multimethod
+         "private/expr.rkt"
          "num.rkt")
 
 ;; --------
@@ -42,18 +42,7 @@
 ;; sym
 ;; ---
 
-(struct sym (val)
-  #:transparent
-  #:methods gen:algexpr [
-  (define (evaluate n)
-    (sym-evaluate n))
-  (define (sexpr n)
-    (sym-sexpr n))
-  (define (latex n)
-    (sym-latex n))
-  (define (differentiate n s)
-    (sym-differentiate n s))
-  ])
+(struct sym (val))
 
 ;; ------------
 ;; sym-evaluate
@@ -68,10 +57,21 @@
                 3)
   )
 
-(define (sym-evaluate n)
+(define-instance ((evaluate sym) n)
   (define (_ . rest)
     (car rest))
   _)
+
+;; ---------
+;; sym-zero?
+;; ---------
+
+(module+ test
+  (check-false (zero? (make-sym 'x)))
+  )
+
+(define-instance ((zero? sym) s)
+  #f)
 
 ;; ---------
 ;; sym-sexpr
@@ -82,7 +82,7 @@
                 'x)
   )
 
-(define (sym-sexpr s)
+(define-instance ((sexpr sym) s)
   (sym-val s))
 
 ;; ---------
@@ -96,7 +96,7 @@
                 "y_1")
   )
 
-(define (sym-latex s)
+(define-instance ((latex sym) s)
   (symbol->string (sym-val s)))
 
 ;; -----------------
@@ -110,7 +110,7 @@
                 (make-sym 'x))
   )
 
-(define (sym-differentiate sm s)
+(define-instance ((differentiate sym) sm s)
   (if (equal? (sym-val sm) s)
       (make-num 1)
       sm))
@@ -125,3 +125,6 @@
   (check-equal? (simplify (make-sym 'x))
                 (make-sym 'x))
   )
+
+(define-instance ((simplify sym) s)
+  s)

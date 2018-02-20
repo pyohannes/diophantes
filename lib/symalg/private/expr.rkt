@@ -2,35 +2,23 @@
 
 ;; The interface (generic) for symbolic algebraic expressions.
 
-(require racket/contract)
-
 (provide
+  sexpr
+  differentiate
+  latex
+  evaluate
+  simplify
   zero?
-  gen:algexpr
-  (contract-out
-    [algexpr?           (-> any/c boolean?)]
-    [sexpr              (-> algexpr? any/c)]
-    [differentiate      (-> algexpr? symbol? algexpr?)]
-    [latex              (-> algexpr? string?)]
-    [evaluate           (-> algexpr? (->* () #:rest (listof number?) number?))]
-    [simplify           (-> algexpr? algexpr?)]
-  ))
+  )
 
 ;; ---------------------------------
 ;; Import and implementation section
 
-(require racket/generic)
+(require multimethod)
 
-(define-generics algexpr
-  (sexpr algexpr)
-  (children algexpr)
-  (differentiate algexpr s)
-  (latex algexpr)
-  (evaluate algexpr)
-  (simplify algexpr)
-  (zero? algexpr)
-  #:fallbacks
-  [(define (children algexpr) '())
-   (define (simplify algexpr) algexpr)
-   (define (zero? algexpr) #f)
-  ])
+(define-generic (sexpr e))
+(define-generic (differentiate e _))
+(define-generic (latex e))
+(define-generic (evaluate e))
+(define-generic (simplify e))
+(define-generic (zero? e))

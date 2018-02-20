@@ -2,20 +2,16 @@
 
 ;; Numerical expressions.
 
-(require racket/contract)
-
 (provide
   (all-from-out "private/expr.rkt")
-  (contract-out
-    [make-num                (-> integer?  num?)]
-    [num?                    (-> any/c boolean?)]
-    [num-val                 (-> num? integer?)]
-  ))
-
+  make-num num? num-val
+  )
+  
 ;; ---------------------------------
 ;; Import and implementation section
 
-(require "private/expr.rkt")
+(require multimethod
+         "private/expr.rkt")
 
 ;; --------
 ;; make-num
@@ -35,20 +31,7 @@
 ;; num
 ;; ---
 
-(struct num (val)
-  #:transparent
-  #:methods gen:algexpr [
-  (define (evaluate n)
-    (num-evaluate n))
-  (define (sexpr n)
-    (num-sexpr n))
-  (define (latex n)
-    (num-latex n))
-  (define (differentiate n s)
-    (num-differentiate n s))
-  (define (zero? n)
-    (num-zero? n))
-  ])
+(struct num (val))
 
 ;; ---------
 ;; num-zero?
@@ -59,7 +42,7 @@
   (check-false (zero? (make-num 9)))
   )
 
-(define (num-zero? n)
+(define-instance ((zero? num) n)
   (= (num-val n) 0))
 
 ;; ------------
@@ -75,7 +58,7 @@
                 0)
   )
 
-(define (num-evaluate n)
+(define-instance ((evaluate num) n)
   (define (_ . rest)
     (num-val n))
   _)
@@ -91,7 +74,7 @@
                 '0)
   )
 
-(define (num-sexpr n)
+(define-instance ((sexpr num) n)
   (num-val n))
 
 ;; ---------
@@ -105,7 +88,7 @@
                 "0")
   )
 
-(define (num-latex n)
+(define-instance ((latex num) n)
   (number->string (num-val n)))
 
 ;; -----------------
@@ -119,7 +102,7 @@
                 (make-num 0))
   )
 
-(define (num-differentiate p s)
+(define-instance ((differentiate num) n s)
   (make-num 0))
 
 ;; ------------
@@ -132,3 +115,6 @@
   (check-equal? (simplify (make-num 3))
                 (make-num 3))
   )
+
+(define-instance ((simplify num) n)
+  n)

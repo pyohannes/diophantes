@@ -2,20 +2,17 @@
 
 ;; N-ary additions.
 
-(require racket/contract)
-
 (provide
   (all-from-out "private/expr.rkt")
-  (contract-out
-    [make-add                (->* (algexpr? algexpr?) #:rest (listof algexpr?)
-                                  add?)]
-  ))
+  make-add
+  )
 
 ;; ---------------------------------
 ;; Import and implementation section
 
 (require racket/string
          racket/list
+         multimethod
          "private/expr.rkt"
          "private/util.rkt"
          "num.rkt")
@@ -39,20 +36,7 @@
 ;; add
 ;; ---
 
-(struct add (addends)
-  #:transparent
-  #:methods gen:algexpr [
-  (define (evaluate a)
-    (add-evaluate a))
-  (define (sexpr a)
-    (add-sexpr a))
-  (define (latex a)
-    (add-latex a))
-  (define (differentiate a s)
-    (add-differentiate a s))
-  (define (simplify a)
-    (add-simplify a))
-  ])
+(struct add (addends))
 
 ;; ------------
 ;; add-evaluate
@@ -67,7 +51,7 @@
                 16)
   )
 
-(define (add-evaluate a)
+(define-instance ((evaluate add) a)
   (define (_ . rest)
     (for/sum ([addend (add-addends a)])
       (apply (evaluate addend) rest)))
@@ -84,7 +68,7 @@
                 '(+ 3 x 4))
   )
 
-(define (add-sexpr a)
+(define-instance ((sexpr add) a)
   (cons '+
         (for/list ([addend (add-addends a)])
           (sexpr addend))))
@@ -100,7 +84,7 @@
                 "2 + x + y")
   )
 
-(define (add-latex a)
+(define-instance ((latex add) a)
   (string-join 
     (for/list ([addend (add-addends a)])
       (latex addend))
@@ -115,7 +99,7 @@
                 (make-add (make-num 1) (make-num 0)))
   )
 
-(define (add-differentiate a s)
+(define-instance ((differentiate add) a s)
   (add (for/list ([addend (add-addends a)])
          (differentiate addend s))))
 
@@ -148,7 +132,7 @@
                 (make-num 4))
   )
 
-(define (add-simplify a)
+(define-instance ((simplify add) a)
   (apply-simplify a 
                   add?  
                   (list add-simplify/nested

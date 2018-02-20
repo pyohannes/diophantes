@@ -2,22 +2,17 @@
 
 ;; Polynomials with a single indeterminante.
 
-(require racket/contract)
-
 (provide
   (all-from-out "private/expr.rkt")
-  (contract-out
-    [make-polynomial/si      (-> symbol? 
-                                (listof integer?)
-                                polynomial/si?)]
-    [polynomial/si-degree    (-> polynomial/si? integer?)]
-  ))
+  make-polynomial/si
+  )
 
 ;; ---------------------------------
 ;; Import and implementation section
 
 (require racket/match
          racket/string
+         multimethod
          "private/expr.rkt"
          "private/util.rkt")
 
@@ -42,18 +37,7 @@
 ;; polynomial/si
 ;; -------------
 
-(struct polynomial/si (indet coeffs)
-  #:transparent
-  #:methods gen:algexpr [
-  (define (evaluate p)
-    (polynomial/si-evaluate p))
-  (define (sexpr p)
-    (polynomial/si-sexpr p))
-  (define (latex p)
-    (polynomial/si-latex p))
-  (define (differentiate p s)
-    (polynomial/si-differentiate p s))
-  ])
+(struct polynomial/si (indet coeffs))
 
 ;; --------------------
 ;; polynomial/si-degree
@@ -89,7 +73,7 @@
                 0)
   )
 
-(define (polynomial/si-evaluate p)
+(define-instance ((evaluate polynomial/si) p)
   (define (_ . rest)
     (define x (car rest))
     (for/sum ([c (polynomial/si-coeffs p)]
@@ -116,7 +100,7 @@
                 '(expt y 2))
   )
 
-(define (polynomial/si-sexpr p)
+(define-instance ((sexpr polynomial/si) p)
   (define indet (polynomial/si-indet p))
   (define parts
     (for/list ([c (polynomial/si-coeffs p)]
@@ -156,7 +140,7 @@
                 "y^{2}")
   )
 
-(define (polynomial/si-latex p)
+(define-instance ((latex polynomial/si) p)
   (define indet (symbol->string (polynomial/si-indet p)))
   (define parts
     (for/list ([c (polynomial/si-coeffs p)]
@@ -197,7 +181,7 @@
                 (make-polynomial/si 'y '(0 0 1)))
   )
 
-(define (polynomial/si-differentiate p s)
+(define-instance ((differentiate polynomial/si) p s)
   (define indet (polynomial/si-indet p))
   (define coeffs (polynomial/si-coeffs p))
   (cond ((and (> (length coeffs) 0)
@@ -209,3 +193,15 @@
              (* c e))))
         (else
           p)))
+
+;; ----------------------
+;; polynomial/si-simplify
+;; ----------------------
+
+(module+ test
+  (check-equal? (simplify (make-polynomial/si 'x '(0 1 2)))
+                (make-polynomial/si 'x '(0 1 2)))
+  )
+
+(define-instance ((simplify polynomial/si) p)
+  p)

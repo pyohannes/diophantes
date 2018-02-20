@@ -2,21 +2,16 @@
 
 ;; Constant fractions.
 
-(require racket/contract)
-
 (provide
   (all-from-out "private/expr.rkt")
-  (contract-out
-    [make-frac               (-> integer? integer? frac?)]
-    [frac?                   (-> any/c boolean?)]
-    [frac-num                (-> frac? integer?)]
-    [frac-denom              (-> frac? integer?)]
-  ))
+  make-frac frac? frac-num frac-denom
+  )
 
 ;; ---------------------------------
 ;; Import and implementation section
 
-(require "private/expr.rkt"
+(require multimethod
+         "private/expr.rkt"
          "private/util.rkt"
          "num.rkt")
 
@@ -38,33 +33,18 @@
 ;; frac
 ;; ----
 
-(struct frac (num denom)
-  #:transparent
-  #:methods gen:algexpr [
-  (define (evaluate f)
-    (frac-evaluate f))
-  (define (sexpr f)
-    (frac-sexpr f))
-  (define (latex f)
-    (frac-latex f))
-  (define (differentiate f s)
-    (frac-differentiate f s))
-  (define (zero? f)
-    (frac-zero? f))
-  (define (simplify f)
-    (frac-simplify f))
-  ])
+(struct frac (num denom))
 
 ;; ----------
 ;; frac-zero?
 ;; ----------
 
 (module+ test
-  (check-true  (frac-zero? (make-frac 0 3)))
-  (check-false (frac-zero? (make-frac 1 3)))
+  (check-true  (zero? (make-frac 0 3)))
+  (check-false (zero? (make-frac 1 3)))
   )
 
-(define (frac-zero? f)
+(define-instance ((zero? frac) f)
   (= (frac-num f) 0))
 
 ;; -------------
@@ -80,7 +60,7 @@
                 (/ 3 4))
   )
 
-(define (frac-evaluate f)
+(define-instance ((evaluate frac) f)
   (define (_ . rest)
     (/ (frac-num f)
        (frac-denom f)))
@@ -95,7 +75,7 @@
                 '(/ 3 4))
   )
 
-(define (frac-sexpr f)
+(define-instance ((sexpr frac) f)
   (list '/
         (frac-num f)
         (frac-denom f)))
@@ -109,7 +89,7 @@
                 "\\frac{3}{4}")
   )
 
-(define (frac-latex f)
+(define-instance ((latex frac) f)
   (format "\\frac{~a}{~a}" (frac-num f) (frac-denom f)))
 
 ;; ------------------
@@ -121,7 +101,7 @@
                 (make-num 0))
   )
 
-(define (frac-differentiate f s)
+(define-instance ((differentiate frac) f s)
   (make-num 0))
 
 ;; -------------
@@ -141,7 +121,7 @@
                 (make-frac 1 2))
   )
 
-(define (frac-simplify f)
+(define-instance ((simplify frac) f)
   (apply-simplify f
                   frac?
                   (list frac-simplify/standard
