@@ -1,107 +1,90 @@
 #lang racket/base
 
-;; N-ary additions.
+;; Simplifying symbolic algebraic expressions.
 
-(provide
-  (all-from-out "private/expr.rkt")
-  make-add
-  )
+(provide simplify)
 
 ;; ---------------------------------
 ;; Import and implementation section
 
-(require racket/string
+(require multimethod
          racket/list
-         multimethod
-         "private/expr.rkt"
-         "private/util.rkt"
-         "num.rkt")
+         "private/data.rkt"
+         "private/zero-expr.rkt"
+         "private/util.rkt")
+         
 
 ;; --------
-;; make-add
+;; simplify
 ;; --------
+
+(define-generic (simplify e))
+
+;; ------------
+;; num-simplify
+;; ------------
 
 (module+ test
   (require rackunit)
-  (require "sym.rkt")
 
-  (check-equal? (make-add (make-num 3) (make-num 4))
-                (add (list (make-num 3) (make-num 4))))
+  ;; ASAE-1: u is an integer.
+  (check-equal? (simplify (make-num 3))
+                (make-num 3))
   )
 
-(define (make-add n1 n2 . rest)
-  (add (cons n1 (cons n2 rest))))
+(define-instance ((simplify num) n)
+  n)
 
-;; ---
-;; add
-;; ---
+;; -------------
+;; frac-simplify
+;; -------------
 
-(struct add (addends))
+(module+ test
+
+  ;; ASAE-2: u is a fraction in standard form.
+  (check-equal? (simplify (make-frac 3 4))
+                (make-frac 3 4))
+  (check-equal? (simplify (make-frac 4 1))
+                (make-num 4))
+  (check-equal? (simplify (make-frac 8 4))
+                (make-num 2))
+  (check-equal? (simplify (make-frac 4 8))
+                (make-frac 1 2))
+  )
+
+(define-instance ((simplify frac) f)
+  (apply-simplify f
+                  frac?
+                  (list frac-simplify/standard
+                        frac-simplify/num)))
+
+(define (frac-simplify/standard f)
+  (define num (frac-num f))
+  (define denom (frac-denom f))
+  (define g (gcd num denom))
+  (if (> g 1)
+      (make-frac (/ num g)
+                 (/ denom g))
+      f))
+
+(define (frac-simplify/num f)
+  (if (= (frac-denom f) 1)
+      (make-num (frac-num f))
+      f))
 
 ;; ------------
-;; add-evaluate
+;; sym-simplify
 ;; ------------
 
 (module+ test
-  (check-equal? ((evaluate (make-add (make-num 3) (make-sym 'x)))
-                 9)
-                12)
-  (check-equal? ((evaluate (make-add (make-num 3) (make-sym 'x) (make-num 4)))
-                 9)
-                16)
+
+  ;; ASAE-3: u is a symbol.
+  (check-equal? (simplify (make-sym 'x))
+                (make-sym 'x))
   )
 
-(define-instance ((evaluate add) a)
-  (define (_ . rest)
-    (for/sum ([addend (add-addends a)])
-      (apply (evaluate addend) rest)))
-  _)
-
-;; ---------
-;; add-sexpr
-;; ---------
-
-(module+ test
-  (check-equal? (sexpr (make-add (make-num 3) (make-num 4)))
-                '(+ 3 4))
-  (check-equal? (sexpr (make-add (make-num 3) (make-sym 'x) (make-num 4)))
-                '(+ 3 x 4))
-  )
-
-(define-instance ((sexpr add) a)
-  (cons '+
-        (for/list ([addend (add-addends a)])
-          (sexpr addend))))
-
-;; ---------
-;; add-latex
-;; ---------
-
-(module+ test
-  (check-equal? (latex (make-add (make-num 3) (make-sym 'x)))
-                "3 + x")
-  (check-equal? (latex (make-add (make-num 2) (make-sym 'x) (make-sym 'y)))
-                "2 + x + y")
-  )
-
-(define-instance ((latex add) a)
-  (string-join 
-    (for/list ([addend (add-addends a)])
-      (latex addend))
-    " + "))
-
-;; -----------------
-;; add-differentiate
-;; -----------------
-
-(module+ test
-  (check-equal? (differentiate (make-add (make-sym 'x) (make-num 3)) 'x)
-                (make-add (make-num 1) (make-num 0)))
-  )
-
-(define-instance ((differentiate add) a s)
-  (add (for/list ([addend (add-addends a)])
-         (differentiate addend s))))
+(define-instance ((simplify sym) s)
+  s)
 
 ;; ------------
 ;; add-simplify
@@ -160,7 +143,7 @@
           a)))
 
 (define (add-simplify/zero a)
-  (add (filter (negate zero?)
+  (add (filter (negate zero-expr?)
                (add-addends a))))
 
 (define (add-simplify/unary a)
@@ -168,3 +151,33 @@
   (if (= 1 (length addends))
       (car addends)
       a))
+
+;; ----------------------
+;; polynomial/si-simplify
+;; ----------------------
+
+(module+ test
+  (check-equal? (simplify (make-polynomial/si 'x '(0 1 2)))
+                (make-polynomial/si 'x '(0 1 2)))
+  )
+
+(define-instance ((simplify polynomial/si) p)
+  p)
+
+; --------------
+; apply-simplify
+; --------------
+
+(module+ test
+  (check-equal? (apply-simplify
+                  3
+                  number?
+                  (list number->string symbol->string))
+                "3"))
+
+
+(define (apply-simplify expr pred? ops)
+  (for/fold ([a expr])
+            ([op ops])
+            #:break (not (pred? a))
+    (op a)))

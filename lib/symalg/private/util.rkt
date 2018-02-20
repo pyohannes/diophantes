@@ -6,7 +6,6 @@
 
 (provide
   negate
-  apply-simplify
   (contract-out
     [list-trim-right        (-> list? any/c list?)]
     [list-trim-left         (-> list? any/c list?)]
@@ -62,21 +61,3 @@
   (define (negator . args)
     (not (apply f args)))
   negator)
-
-; --------------
-; apply-simplify
-; --------------
-
-(module+ test
-  (check-equal? (apply-simplify
-                  3
-                  number?
-                  (list number->string symbol->string))
-                "3"))
-
-
-(define (apply-simplify expr pred? ops)
-  (for/fold ([a expr])
-            ([op ops])
-            #:break (not (pred? a))
-    (op a)))
