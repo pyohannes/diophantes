@@ -76,8 +76,8 @@
                 (add (list (make-num 3) (make-num 4))))
   )
 
-(define (make-add n1 n2 . rest)
-  (add (cons n1 (cons n2 rest))))
+(define (make-add n1 . rest)
+  (add (cons n1 rest)))
 
 ;; ---
 ;; add

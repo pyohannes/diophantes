@@ -9,9 +9,11 @@
 
 (require multimethod
          racket/list
+         racket/match
          "private/data.rkt"
          "private/zero-expr.rkt"
-         "private/util.rkt")
+         "private/util.rkt"
+         "smaller.rkt")
          
 
 ;; --------
@@ -95,20 +97,20 @@
   ;; Resolve nested additions
   (check-equal? (simplify (make-add (make-num 3) 
                                     (make-add (make-sym 'x) (make-sym 'y))))
-                (make-add (make-sym 'x) (make-sym 'y) (make-num 3)))
+                (make-add (make-num 3) (make-sym 'x) (make-sym 'y)))
   (check-equal? (simplify (make-add (make-num 3) 
                                     (make-add (make-sym 'x) (make-num 4))))
-                (make-add (make-sym 'x) (make-num 7)))
+                (make-add (make-num 7) (make-sym 'x)))
 
   ;; Resolve additions of numbers
   (check-equal? (simplify (make-add (make-num 3) (make-num 4)))
                 (make-num 7))
   (check-equal? (simplify (make-add (make-num 3) (make-sym 'x) (make-num 4)))
-                (make-add (make-sym 'x) (make-num 7)))
+                (make-add (make-num 7) (make-sym 'x)))
 
   ;; Remove zeros
   (check-equal? (simplify (make-add (make-sym 'x) (make-num 4) (make-num 0)))
-                (make-add (make-sym 'x) (make-num 4)))
+                (make-add (make-num 4) (make-sym 'x)))
 
   ;; Resolve unary additions
   (check-equal? (simplify (make-add (make-num 4) (make-num 0)))
@@ -118,18 +120,11 @@
 (define-instance ((simplify add) a)
   (apply-simplify a 
                   add?  
-                  (list add-simplify/nested
+                  (list (flattener-by-pred add? add-addends make-add)
                         add-simplify/nums
                         add-simplify/zero
-                        add-simplify/unary)))
-
-(define (add-simplify/nested a)
-  (add
-    (flatten
-      (for/list ([addend (add-addends a)])
-        (if (add? addend)
-            (add-addends addend)
-            addend)))))
+                        add-simplify/unary
+                        add-simplify/sort)))
 
 (define (add-simplify/nums a)
   (define addends (add-addends a))
@@ -151,6 +146,154 @@
   (if (= 1 (length addends))
       (car addends)
       a))
+
+(define (add-simplify/sort a)
+  (add (sort (add-addends a)
+             smaller?)))
+
+;; ------------
+;; mul-simplify
+;; ------------
+
+(module+ test
+
+  ;; ASAE-4.1
+  (check-equal? (simplify (make-mul (make-sym 'x)
+                                    (make-mul (make-sym 'y) (make-sym 'z))))
+                (make-mul (make-sym 'x) (make-sym 'y) (make-sym 'z)))
+  (check-equal? (simplify (make-mul 
+                            (make-sym 'a)
+                            (make-mul 
+                              (make-sym 'b) 
+                              (make-mul
+                                (make-sym 'c)
+                                (make-sym 'd)))))
+                (make-mul (make-sym 'a) 
+                          (make-sym 'b) 
+                          (make-sym 'c)
+                          (make-sym 'd)))
+
+  ;; ASAE-4.2
+  (check-equal? (simplify (make-mul (make-num 3) (make-sym 'x) (make-num 4)))
+                (make-mul (make-num 12) (make-sym 'x)))
+  (check-equal? (simplify (make-mul (make-num 3) 
+                                    (make-sym 'x) 
+                                    (make-frac 3 4)))
+                (make-mul (make-frac 9 4) (make-sym 'x)))
+
+  ;; ASAE-4.3
+  (check-equal? (simplify (make-mul (make-power (make-sym 'x) (make-num 3))
+                                    (make-power (make-sym 'x) (make-num 4))
+                                    (make-sym 'z)))
+                (make-mul (make-power (make-sym 'x) (make-num 7))
+                          (make-sym 'z)))
+  (check-equal? (simplify (make-mul (make-power (make-sym 'a) (make-sym 'x))
+                                    (make-power (make-sym 'a) (make-sym 'y))
+                                    (make-sym 'z)))
+                (make-mul (make-power (make-sym 'a) 
+                                      (make-add (make-sym 'x) (make-sym 'y)))
+                          (make-sym 'z)))
+  (check-equal? (simplify (make-mul (make-sym 'x) (make-sym 'x) (make-sym 'y)))
+                (make-mul (make-power (make-sym 'x) (make-num 2))
+                          (make-sym 'y)))
+
+  ;; ASAE-4.4
+  (check-equal? (simplify (make-mul (make-sym 'y) (make-sym 'x) (make-num 3)))
+                (make-mul (make-num 3) (make-sym 'x) (make-sym 'y)))
+  )
+
+(define-instance ((simplify mul) m)
+  (apply-simplify m 
+                  mul?  
+                  (list mul-simplify/children
+                        (flattener-by-pred mul? mul-factors make-mul)
+                        mul-simplify/constant
+                        mul-simplify/power
+                        mul-simplify/sort
+                        )))
+
+(define (mul-simplify/children m)
+  (apply make-mul
+         (map simplify (mul-factors m))))
+
+(define (mul-simplify/constant m)
+  (define fs (mul-factors m))
+  (define n/fs (filter constant? fs))
+  (cond ((not (null? n/fs))
+         (define rest/fs (filter (negate constant?) fs))
+         (define n
+           (for/fold ([r (frac 1 1)])
+                     ([n n/fs])
+             (constant-* r n)))
+         (apply make-mul (cons n rest/fs)))
+        (else
+          m)))
+
+(define (mul-simplify/power m)
+  (define (powerize t)
+    (if (not (power? t))
+        (make-power t (make-num 1))
+        t))
+  (define fs (map powerize (mul-factors m)))
+  (define hash/p
+    (for/fold ([r (hash)])
+              ([p fs])
+      (define base (power-base p))
+      (hash-set r base (cons p
+                             (hash-ref r base '())))))
+  (cond ((< (length (hash-keys hash/p))
+            (length fs))
+         (define rest/fs (filter (negate power?) fs))
+         (define ps (map power-* (hash-values hash/p)))
+         ;; Maybe there is a better way to avoid the simplify below. It is just
+         ;; used to remove obsolete exponents here.
+         (apply make-mul
+                (map simplify (append ps rest/fs))))
+        (else
+          m)))
+
+(define (mul-simplify/sort m)
+  (mul (sort (mul-factors m) 
+             smaller?)))
+
+;; --------------
+;; simplify-power
+;; --------------
+
+(module+ test
+  (check-equal? (simplify (make-power (make-sym 'x) (make-num 1)))
+                (make-sym 'x))
+  (check-equal? (simplify (make-power (make-sym 'x) (make-num 0)))
+                (make-num 1))
+  (check-equal? (simplify (make-power (make-num 2) (make-num 3)))
+                (make-num 8))
+  (check-equal? (simplify (make-power (make-num 0) (make-sym 'x)))
+                (make-num 0))
+  )
+
+(define-instance ((simplify power) p)
+  (apply-simplify p 
+                  power?  
+                  (list power-simplify/children
+                        power-simplify/num
+                        )))
+
+(define (power-simplify/children p)
+  (make-power (simplify (power-base p))
+              (simplify (power-exponent p))))
+
+(define (power-simplify/num p)
+  (match (list (power-base p) (power-exponent p))
+    [(list b (== (make-num 1))) 
+     b]
+    [(list b (== (make-num 0))) 
+     (make-num 1)]
+    [(list (== (make-num 0)) _) 
+     (make-num 0)]
+    [(list (? constant? b) (? constant? e))
+     (constant-expt b e)]
+    [_
+     p]))
 
 ;; ----------------------
 ;; polynomial/si-simplify
@@ -181,3 +324,116 @@
             ([op ops])
             #:break (not (pred? a))
     (op a)))
+
+; -----------------
+; flattener-by-pred
+; -----------------
+
+(module+ test
+  (check-equal? ((flattener-by-pred add? add-addends make-add)
+                 (make-add (make-num 1) (make-add (make-num 2) (make-num 3))))
+                (make-add (make-num 1) (make-num 2) (make-num 3)))
+  )
+
+(define (flattener-by-pred pred? accessor construct)
+  (lambda (e)
+    (apply 
+      construct
+      (flatten
+        (for/list ([term (accessor e)])
+          (if (pred? term)
+              (accessor term)
+              term))))))
+
+
+; ----------
+; combine-or
+; ----------
+
+(module+ test
+  (check-true  ((combine-or-pred symbol? number?) 3))
+  (check-true  ((combine-or-pred symbol? number?) 'ab))
+  (check-false ((combine-or-pred symbol? number?) "ab"))
+  (check-false ((combine-or-pred symbol? string?) 3))
+  )
+
+(define (combine-or-pred . preds)
+  (lambda (x)
+    (cond ((null? preds) #f)
+          (((car preds) x) #t)
+          (else
+            ((apply combine-or-pred (cdr preds)) x)))))
+
+; ---------
+; constant?
+; ---------
+
+(module+ test
+  (check-true  (constant? (make-num 3)))
+  (check-true  (constant? (make-frac 3 4)))
+  (check-false (constant? (make-sym 'x)))
+  (check-false (constant? (make-mul (make-sym 'x) (make-num 3))))
+  )
+
+(define constant? (combine-or-pred num? frac?))
+
+; ----------
+; constant-*
+; ----------
+
+(module+ test
+  (check-equal? (constant-* (make-num 3) (make-num 4))
+                (make-num 12))
+  (check-equal? (constant-* (make-num 3) (make-frac 3 2))
+                (make-frac 9 2))
+  (check-equal? (constant-* (make-frac 2 3) (make-num 3))
+                (make-num 2))
+  (check-equal? (constant-* (make-frac 2 3) (make-frac 2 3))
+                (make-frac 4 9))
+  )
+
+(define (constant-* f1 f2)
+  (match (list f1 f2)
+    [(list (? num? f1) (? num? f2))
+     (make-num (* (num-val f1) (num-val f2)))]
+    [(list (? num? f1) (? frac? f2))
+     (constant-* (make-frac (num-val f1) 1) f2)]
+    [(list (? frac? f1) (? num? f2))
+     (constant-* f2 f1)]
+    [(list (? frac? f1) (? frac? f2))
+     (simplify (make-frac (* (frac-num f1) (frac-num f2))
+                          (* (frac-denom f1) (frac-denom f2))))]))
+
+; -------------
+; constant-expt
+; -------------
+
+(module+ test
+  (check-equal? (constant-expt (make-num 3) (make-num 2))
+                (make-num 9))
+  (check-equal? (constant-expt (make-frac 1 2) (make-num 2))
+                (make-frac 1 4))
+  )
+
+(define (constant-expt b e)
+  (match (list b e)
+    [(list (? num? b) (? num? e))
+     (make-num (expt (num-val b) (num-val e)))]
+    [(list (? frac? b) (? num? e))
+     (simplify (make-frac (expt (frac-num b) (num-val e))
+                          (expt (frac-denom b) (num-val e))))]))
+
+; -------
+; power-* 
+; -------
+
+(module+ test
+  (check-equal? (power-* (list (make-power (make-sym 'x) (make-num 3))
+                               (make-power (make-sym 'x) (make-num 4))))
+                (make-power (make-sym 'x) (make-num 7)))
+  )
+
+(define (power-* ps)
+  (make-power (power-base (car ps))
+              (simplify (apply make-add
+                               (map power-exponent ps)))))
