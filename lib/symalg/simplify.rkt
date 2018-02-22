@@ -94,46 +94,57 @@
 
 (module+ test
 
-  ;; Resolve nested additions
+  ;; ASAE-5.1
   (check-equal? (simplify (make-add (make-num 3) 
                                     (make-add (make-sym 'x) (make-sym 'y))))
                 (make-add (make-num 3) (make-sym 'x) (make-sym 'y)))
   (check-equal? (simplify (make-add (make-num 3) 
                                     (make-add (make-sym 'x) (make-num 4))))
                 (make-add (make-num 7) (make-sym 'x)))
+  (check-equal? (simplify (make-add (make-sym 'x) (make-num 4) (make-num 0)))
+                (make-add (make-num 4) (make-sym 'x)))
+  (check-equal? (simplify (make-add (make-num 4) (make-num 0)))
+                (make-num 4))
 
-  ;; Resolve additions of numbers
+  ;; ASAE-5.2
   (check-equal? (simplify (make-add (make-num 3) (make-num 4)))
                 (make-num 7))
+  (check-equal? (simplify (make-add (make-num 3) (make-frac 3 4)))
+                (make-frac 15 4))
   (check-equal? (simplify (make-add (make-num 3) (make-sym 'x) (make-num 4)))
                 (make-add (make-num 7) (make-sym 'x)))
 
-  ;; Remove zeros
-  (check-equal? (simplify (make-add (make-sym 'x) (make-num 4) (make-num 0)))
-                (make-add (make-num 4) (make-sym 'x)))
+  ;; ASAE-5.3
+  (check-equal? (simplify (make-add (make-sym 'x) (make-sym 'x)))
+                (make-mul (make-num 2) (make-sym 'x)))
+  (check-equal? (simplify (make-add (make-sym 'x) (make-num 4) (make-sym 'x)))
+                (make-add (make-num 4) (make-mul (make-num 2) (make-sym 'x))))
 
-  ;; Resolve unary additions
-  (check-equal? (simplify (make-add (make-num 4) (make-num 0)))
-                (make-num 4))
+  ;; ASAE-5.4
+  (check-equal? (simplify (make-add (make-sym 'y) (make-sym 'x) (make-num 3)))
+                (make-add (make-num 3) (make-sym 'x) (make-sym 'y)))
   )
 
 (define-instance ((simplify add) a)
   (apply-simplify a 
                   add?  
                   (list (flattener-by-pred add? add-addends make-add)
-                        add-simplify/nums
+                        add-simplify/constant
                         add-simplify/zero
+                        add-simplify/mul
                         add-simplify/unary
                         add-simplify/sort)))
 
-(define (add-simplify/nums a)
+(define (add-simplify/constant a)
   (define addends (add-addends a))
-  (define a/nums (filter num? addends))
+  (define a/nums (filter constant? addends))
   (cond ((not (null? a/nums))
-         (define a/rest (filter (negate num?) addends))
-         (define a/nums/sum (for/sum ([n a/nums]) (num-val n)))
-         (add (append a/rest
-                      (list (make-num a/nums/sum)))))
+         (define a/rest (filter (negate constant?) addends))
+         (define a/nums/sum 
+           (for/fold ([r (make-num 0)])
+                     ([n a/nums])
+             (constant-+ r n))) 
+         (add (cons a/nums/sum a/rest)))
         (else
           a)))
 
@@ -146,6 +157,35 @@
   (if (= 1 (length addends))
       (car addends)
       a))
+
+(define (add-simplify/mul a)
+  (define (ensure-mul t)
+    (cond ((not (mul? t))
+           (make-mul (make-num 1) t))
+          ((not (constant? (car (mul-factors t))))
+           (apply make-mul (cons (make-num 1)
+                                 (mul-factors t))))
+          (else
+            t)))
+  (define as (map ensure-mul (add-addends a)))
+  (define hash/m
+    (for/fold ([r (hash)])
+              ([m as])
+      (define const (car (mul-factors m)))
+      (define term  (cdr (mul-factors m)))
+      (hash-set r term (constant-+ const
+                                   (hash-ref r term (make-num 0))))))
+  (cond ((< (length (hash-keys hash/m))
+            (length as))
+         (define ms
+           (for/list ([k (hash-keys hash/m)])
+             (apply make-mul (cons (hash-ref hash/m k) k))))
+         ;; Maybe there is a better way to avoid the simplify below. It is just
+         ;; used to remove obsolete multiplications here.
+         (apply make-add 
+                (map simplify ms)))
+        (else
+          a)))
 
 (define (add-simplify/sort a)
   (add (sort (add-addends a)
@@ -209,6 +249,7 @@
                         (flattener-by-pred mul? mul-factors make-mul)
                         mul-simplify/constant
                         mul-simplify/power
+                        mul-simplify/unary
                         mul-simplify/sort
                         )))
 
@@ -251,6 +292,12 @@
                 (map simplify (append ps rest/fs))))
         (else
           m)))
+
+(define (mul-simplify/unary m)
+  (define factors (mul-factors m))
+  (if (= 1 (length factors))
+      (car factors)
+      m))
 
 (define (mul-simplify/sort m)
   (mul (sort (mul-factors m) 
@@ -376,6 +423,34 @@
   )
 
 (define constant? (combine-or-pred num? frac?))
+
+; ----------
+; constant-+
+; ----------
+
+(module+ test
+  (check-equal? (constant-+ (make-num 3) (make-num 4))
+                (make-num 7))
+  (check-equal? (constant-+ (make-num 3) (make-frac 3 2))
+                (make-frac 9 2))
+  (check-equal? (constant-+ (make-frac 2 3) (make-num 3))
+                (make-frac 11 3))
+  (check-equal? (constant-+ (make-frac 2 3) (make-frac 2 3))
+                (make-frac 4 3))
+  )
+
+(define (constant-+ f1 f2)
+  (match (list f1 f2)
+    [(list (? num? f1) (? num? f2))
+     (make-num (+ (num-val f1) (num-val f2)))]
+    [(list (? num? f1) (? frac? f2))
+     (constant-+ (make-frac (num-val f1) 1) f2)]
+    [(list (? frac? f1) (? num? f2))
+     (constant-+ f2 f1)]
+    [(list (? frac? f1) (? frac? f2))
+     (simplify (make-frac (+ (* (frac-num f1) (frac-denom f2))
+                             (* (frac-num f2) (frac-denom f1)))
+                          (* (frac-denom f1) (frac-denom f2))))]))
 
 ; ----------
 ; constant-*

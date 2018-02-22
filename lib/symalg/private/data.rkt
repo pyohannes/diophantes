@@ -112,8 +112,8 @@
                 (mul (list (make-num 3) (make-num 4))))
   )
 
-(define (make-mul n1 n2 . rest)
-  (mul (cons n1 (cons n2 rest))))
+(define (make-mul n1 . rest)
+  (mul (cons n1 rest)))
 
 ;; ---
 ;; mul
