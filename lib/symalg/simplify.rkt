@@ -304,16 +304,33 @@
              smaller?)))
 
 ;; --------------
-;; simplify-power
+;; power-simplify
 ;; --------------
 
 (module+ test
-  (check-equal? (simplify (make-power (make-sym 'x) (make-num 1)))
-                (make-sym 'x))
+  ;; ASAE-6.1: children as ASAEs
+  (check-equal? (simplify (make-power (make-sym 'x) (make-add (make-num 1)
+                                                              (make-num 2))))
+                (make-power (make-sym 'x) (make-num 3)))
+  (check-equal? (simplify (make-power (make-add (make-num 1) (make-num 1))
+                                      (make-sym 'x)))
+                (make-power (make-num 2) (make-sym 'x)))
+
+  ;; ASAE-6.2: The exponent is not 0 or 1
   (check-equal? (simplify (make-power (make-sym 'x) (make-num 0)))
                 (make-num 1))
-  (check-equal? (simplify (make-power (make-num 2) (make-num 3)))
-                (make-num 8))
+  (check-equal? (simplify (make-power (make-sym 'x) (make-num 1)))
+                (make-sym 'x))
+
+  ;; ASAE-6.3: no multiplications in the base
+  (check-equal? (simplify (make-power (make-mul (make-sym 'x) (make-sym 'y))
+                                      (make-num 2)))
+                (make-mul (make-power (make-sym 'x) (make-num 2))
+                          (make-power (make-sym 'y) (make-num 2))))
+
+  ;; ASAE-6.4: The base is not 0 or 1
+  (check-equal? (simplify (make-power (make-num 1) (make-sym 'x)))
+                (make-num 1))
   (check-equal? (simplify (make-power (make-num 0) (make-sym 'x)))
                 (make-num 0))
   )
@@ -323,6 +340,7 @@
                   power?  
                   (list power-simplify/children
                         power-simplify/num
+                        power-simplify/mul
                         )))
 
 (define (power-simplify/children p)
@@ -337,10 +355,23 @@
      (make-num 1)]
     [(list (== (make-num 0)) _) 
      (make-num 0)]
+    [(list (== (make-num 1)) _) 
+     (make-num 1)]
     [(list (? constant? b) (? constant? e))
      (constant-expt b e)]
     [_
      p]))
+
+(define (power-simplify/mul p)
+  (define base (power-base p))
+  (cond ((mul? base)
+         (define e (power-exponent p))
+         (define factors
+           (for/list ([f (mul-factors base)])
+             (power f e)))
+         (simplify (apply make-mul factors)))
+        (else
+          p)))
 
 ;; ----------------------
 ;; polynomial/si-simplify
