@@ -34,10 +34,16 @@
   ;; ASAE-1: u is an integer.
   (check-equal? (simplify (make-num 3))
                 (make-num 3))
+  (check-equal? (simplify (make-num (/ 4 5)))
+                (make-frac 4 5))
   )
 
 (define-instance ((simplify num) n)
-  n)
+  (define num (num-val n))
+  (if (integer? num)
+      n
+      (make-frac (numerator num)
+                 (denominator num))))
 
 ;; -------------
 ;; frac-simplify
@@ -248,6 +254,9 @@
   (check-equal? (simplify (make-mul (make-sym 'x) (make-sym 'x) (make-sym 'y)))
                 (make-mul (make-power (make-sym 'x) (make-num 2))
                           (make-sym 'y)))
+  (check-equal? (simplify (parse-sexpr '(/ (* 4 (expt x 3)) 5)))
+                (make-mul (make-frac 4 5)
+                          (make-power (make-sym 'x) (make-num 3))))
 
   ;; ASAE-4.4
   (check-equal? (simplify (make-mul (make-sym 'y) (make-sym 'x) (make-num 3)))
@@ -278,7 +287,8 @@
            (for/fold ([r (frac 1 1)])
                      ([n n/fs])
              (constant-* r n)))
-         (apply make-mul (cons n rest/fs)))
+         (apply make-mul (cons (simplify n) 
+                               rest/fs)))
         (else
           m)))
 
