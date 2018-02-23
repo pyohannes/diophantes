@@ -27,7 +27,9 @@
 ;; ------------
 
 (module+ test
-  (require rackunit)
+  (require rackunit
+           "parse.rkt")
+
 
   ;; ASAE-1: u is an integer.
   (check-equal? (simplify (make-num 3))
@@ -105,6 +107,8 @@
                 (make-add (make-num 4) (make-sym 'x)))
   (check-equal? (simplify (make-add (make-num 4) (make-num 0)))
                 (make-num 4))
+  (check-equal? (simplify (parse-sexpr '(+ (* 1 2) (* 3 4))))
+                (parse-sexpr 14))
 
   ;; ASAE-5.2
   (check-equal? (simplify (make-add (make-num 3) (make-num 4)))
@@ -113,6 +117,8 @@
                 (make-frac 15 4))
   (check-equal? (simplify (make-add (make-num 3) (make-sym 'x) (make-num 4)))
                 (make-add (make-num 7) (make-sym 'x)))
+  (check-equal? (simplify (make-add (make-num 1) (make-num -1)))
+                (make-num 0))
 
   ;; ASAE-5.3
   (check-equal? (simplify (make-add (make-sym 'x) (make-sym 'x)))
@@ -128,12 +134,17 @@
 (define-instance ((simplify add) a)
   (apply-simplify a 
                   add?  
-                  (list (flattener-by-pred add? add-addends make-add)
+                  (list add-simplify/children
+                        (flattener-by-pred add? add-addends make-add)
                         add-simplify/constant
                         add-simplify/zero
                         add-simplify/mul
                         add-simplify/unary
                         add-simplify/sort)))
+
+(define (add-simplify/children a)
+  (apply make-add 
+         (map simplify (add-addends a))))
 
 (define (add-simplify/constant a)
   (define addends (add-addends a))
@@ -143,7 +154,7 @@
          (define a/nums/sum 
            (for/fold ([r (make-num 0)])
                      ([n a/nums])
-             (constant-+ r n))) 
+             (constant-+ r n)))
          (add (cons a/nums/sum a/rest)))
         (else
           a)))
@@ -154,9 +165,10 @@
 
 (define (add-simplify/unary a)
   (define addends (add-addends a))
-  (if (= 1 (length addends))
-      (car addends)
-      a))
+  (match (length addends)
+    [0 (make-num 0)]
+    [1 (car addends)]
+    [_ a]))
 
 (define (add-simplify/mul a)
   (define (ensure-mul t)
@@ -284,12 +296,11 @@
                              (hash-ref r base '())))))
   (cond ((< (length (hash-keys hash/p))
             (length fs))
-         (define rest/fs (filter (negate power?) fs))
          (define ps (map power-* (hash-values hash/p)))
          ;; Maybe there is a better way to avoid the simplify below. It is just
          ;; used to remove obsolete exponents here.
          (apply make-mul
-                (map simplify (append ps rest/fs))))
+                (map simplify ps)))
         (else
           m)))
 
@@ -384,6 +395,19 @@
 
 (define-instance ((simplify polynomial/si) p)
   p)
+
+;; -------------
+;; logn-simplify
+;; -------------
+
+(module+ test
+  (check-equal? (simplify (parse-sexpr '(logn (+ 1 2) (+ 3 4))))
+                (parse-sexpr '(logn 3 7)))
+  )
+
+(define-instance ((simplify logn) l)
+  (make-logn (simplify (logn-n l))
+             (simplify (logn-base l))))
 
 ; --------------
 ; apply-simplify
@@ -537,6 +561,9 @@
   (check-equal? (power-* (list (make-power (make-sym 'x) (make-num 3))
                                (make-power (make-sym 'x) (make-num 4))))
                 (make-power (make-sym 'x) (make-num 7)))
+  (check-equal? (power-* (list (make-power (make-sym 'x) (make-num 1))
+                               (make-power (make-sym 'x) (make-num -1))))
+                (make-power (make-sym 'x) (make-num 0)))
   )
 
 (define (power-* ps)
