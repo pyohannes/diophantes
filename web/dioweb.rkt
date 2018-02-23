@@ -24,6 +24,8 @@
                   location.href = location.pathname + '?' + formula;
               }"))
         (<stylesheet> "diophantus.css")
+        (<script> "http://cdnjs.cloudflare.com/ajax/libs/d3/3.5.5/d3.min.js")
+        (<script> "https://wzrd.in/standalone/function-plot@1.14.0")
         (<script> "https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.2/MathJax.js?config=TeX-MML-AM_CHTML")))
 
 (define (<stylesheet> href)
@@ -76,10 +78,8 @@
     (when (not (equal? f/dexpr f/dexpr-simple))
         (<formula/tablerow> (format-math (latex f/dexpr-simple)
                                          f/dexpr-simple)))
-;    (when (dexpr-linear? f/dexpr-simple)
-;        (<caption/tablerow> "Plot"))
-;    (when (dexpr-linear? f/dexpr-simple)
-;        (<formula/tablerow> (<img/png> (dexpr-plot-png f/dexpr-simple))))
+    (<caption/tablerow> "Plot")
+    (<formula/tablerow> (<plot> f/dexpr-simple))
     (<caption/tablerow> "Derivative")
     (<formula/tablerow> (format-math (latex f/dexpr-deriv)
                                      f/dexpr-deriv))))
@@ -93,6 +93,18 @@
    `(tr ((class "formula"))
       (td)
       (td ,text)))
+
+(define (<plot> f)
+  `(div
+     (span ((id "plot")))
+     (script ((type "text/javascript"))
+       ,(make-cdata #f #f (format "
+           functionPlot({
+               target: '#plot',
+               data: [{
+                   fn: '~a'
+               }]
+           })" (infix f))))))
 
 (define (<img/png> data)
   (sleep 100)
