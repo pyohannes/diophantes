@@ -2,7 +2,8 @@
 
 ;; Parsing s-expressions and math strings.
 
-(provide parse-sexpr)
+(provide parse-sexpr
+         parse-infix)
 
 ;; ---------------------------------
 ;; Import and implementation section

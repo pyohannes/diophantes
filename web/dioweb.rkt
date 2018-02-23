@@ -3,7 +3,7 @@
 (require xml
          racket/string
          racket/format
-         "../lib/diophantus.rkt")
+         "../lib/symalg/main.rkt")
 
 ; ---------------------------------------
 ; functions returning HTML xexpr entities
@@ -61,28 +61,28 @@
              (value ">")))))
 
 (define (<formulaoutput> formula)
-  (define f/dexpr (sexpr->dexpr (read (open-input-string formula))))
-  (define f/dexpr-simple (dexpr-simplify f/dexpr))
-  (define f/dexpr-deriv (dexpr-deriv/auto f/dexpr-simple))
+  (define f/dexpr (parse-infix formula))
+  (define f/dexpr-simple (simplify f/dexpr))
+  (define f/dexpr-deriv (simplify (differentiate f/dexpr-simple)))
   (list-non-null
     'table
     (<caption/tablerow> "Input")
     (<formula/tablerow> formula)
     (<caption/tablerow> "Formula")
-    (<formula/tablerow> (format-math (dexpr->latex f/dexpr)
+    (<formula/tablerow> (format-math (latex f/dexpr)
                                      f/dexpr))
     (when (not (equal? f/dexpr f/dexpr-simple))
         (<caption/tablerow> "Simplified formula"))
     (when (not (equal? f/dexpr f/dexpr-simple))
-        (<formula/tablerow> (format-math (dexpr->latex f/dexpr-simple)
+        (<formula/tablerow> (format-math (latex f/dexpr-simple)
                                          f/dexpr-simple)))
-    (when (dexpr-linear? f/dexpr-simple)
-        (<caption/tablerow> "Plot"))
-    (when (dexpr-linear? f/dexpr-simple)
-        (<formula/tablerow> (<img/png> (dexpr-plot-png f/dexpr-simple))))
+;    (when (dexpr-linear? f/dexpr-simple)
+;        (<caption/tablerow> "Plot"))
+;    (when (dexpr-linear? f/dexpr-simple)
+;        (<formula/tablerow> (<img/png> (dexpr-plot-png f/dexpr-simple))))
     (<caption/tablerow> "Derivative")
-    (<formula/tablerow> (format-math (dexpr-deriv->latex f/dexpr-deriv)
-                                     (dexpr-deriv-deriv f/dexpr-deriv)))))
+    (<formula/tablerow> (format-math (latex f/dexpr-deriv)
+                                     f/dexpr-deriv))))
 
 (define (<caption/tablerow> text)
    `(tr ((class "caption"))
@@ -110,7 +110,7 @@
 
 (define (decode-uri-arg s)
   (for/fold ([s s])
-            ([char '("(" ")" "*")])
+            ([char '("(" ")" "*" "^" )])
     (string-replace s (string-append "\\" char) char)))
 
 (define (list-non-null . args)
@@ -124,7 +124,7 @@
     (string-append "$$" latex "$$"))
   (define href
     (string-append "javascript:diowebOpen('"
-                   (~a (dexpr->sexpr dexpr))
+                   (~a (sexpr dexpr))
                    "');"))
   `(a ((href ,href)
        (class "formula"))
