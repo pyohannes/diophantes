@@ -21,7 +21,8 @@
 ;; -----------------
 
 (module+ test
-  (require rackunit)
+  (require rackunit
+           "parse.rkt")
 
   (check-equal? (differentiate (make-num 3) 'x)
                 (make-num 0))
@@ -101,18 +102,10 @@
 ;; -------------------
 
 (module+ test
-  (check-equal? (differentiate (make-power (make-sym 'x) (make-num 3)) 'x)
-                (make-mul
-                  (make-power (make-sym 'x) (make-num 3))
-                  (make-add
-                    (make-mul 
-                      (make-num 1)
-                      (make-num 3)
-                      (make-power (make-sym 'x) (make-num -1)))
-                    (make-mul
-                      (make-num 0)
-                      (make-logn (make-num (exp 1))
-                                 (make-sym 'x))))))
+  (check-equal? (differentiate (parse-sexpr '(expt x 3)) 'x)
+                (parse-sexpr '(* (expt x 3)
+                                 (+ (* 1 3 (expt x -1))
+                                    (* 0 (ln x))))))
   )
 
 (define-instance ((differentiate power) p s)
@@ -125,8 +118,8 @@
                                 exponent
                                 (make-power base (make-num -1)))
                       (make-mul d/exponent
-                                (make-logn (make-num (exp 1))
-                                           base)))))
+                                (make-logn base 
+                                           (make-num (exp 1)))))))
 
 ;; ------------------
 ;; logn-differentiate
