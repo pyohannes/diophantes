@@ -238,6 +238,10 @@
                                     (make-sym 'x) 
                                     (make-frac 3 4)))
                 (make-mul (make-frac 9 4) (make-sym 'x)))
+  (check-equal? (simplify (make-mul (make-num 1) (make-sym 'x)))
+                (make-sym 'x))
+  (check-equal? (simplify (make-mul (make-num 0) (make-sym 'x)))
+                (make-num 0))
 
   ;; ASAE-4.3
   (check-equal? (simplify (make-mul (make-power (make-sym 'x) (make-num 3))
@@ -287,8 +291,14 @@
            (for/fold ([r (frac 1 1)])
                      ([n n/fs])
              (constant-* r n)))
-         (apply make-mul (cons (simplify n) 
-                               rest/fs)))
+         (match (simplify n)
+           [(== (make-num 1))
+            (apply make-mul rest/fs)]
+           [(== (make-num 0))
+            (make-num 0)]
+           [n
+            (apply make-mul (cons (simplify n) 
+                                  rest/fs))]))
         (else
           m)))
 
