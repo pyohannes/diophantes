@@ -54,6 +54,8 @@
   (check-exn 
     exn:fail?
     (lambda () (parse-sexpr #t)))
+  (check-equal? (parse-sexpr '(- x))
+                (make-mul (make-num -1) (make-sym 'x)))
   )
 
 (define (parse-sexpr s)
@@ -82,10 +84,12 @@
 ; --------
 
 (define (make-sub first . rest)
-  (apply make-add 
-         (cons first
-               (for/list ([r rest])
-                 (make-mul (make-num -1) r)))))
+  (if (null? rest)
+      (make-mul (make-num -1) first)
+      (apply make-add 
+             (cons first
+                   (for/list ([r rest])
+                     (make-mul (make-num -1) r))))))
 
 ;; -----------
 ;; parse-infix
@@ -124,6 +128,8 @@
   (check-equal? (parse-infix "3 * x + 4 * y")
                 (make-add (make-mul (make-num 3) (make-sym 'x))
                           (make-mul (make-num 4) (make-sym 'y))))
+  (check-equal? (parse-infix "-x")
+                (make-mul (make-num -1) (make-sym 'x)))
   (check-exn 
     exn:fail?
     (lambda () (parse-infix #t)))
@@ -150,6 +156,7 @@
            [(SYM) $1]
            [(FUN LPAR exp RPAR) (list $1 $3)]
            [(LPAR exp RPAR) $2]
+           [(- exp) (list '- $2)]
            [(exp + exp) (list '+ $1 $3)]
            [(exp - exp) (list '- $1 $3)]
            [(exp * exp) (list '* $1 $3)]
