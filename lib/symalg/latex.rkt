@@ -23,7 +23,8 @@
 ;; ---------
 
 (module+ test
-  (require rackunit)
+  (require rackunit
+           "parse.rkt")
 
   (check-equal? (latex (make-num 3))
                 "3")
@@ -86,12 +87,14 @@
                 "3x")
   (check-equal? (latex (make-mul (make-num 2) (make-sym 'x) (make-sym 'y)))
                 "2xy")
+  (check-equal? (latex (parse-sexpr '(* (+ 2 x) (+ 3 y))))
+                "(2 + x)(3 + y)")
   )
 
 (define-instance ((latex mul) m)
   (apply string-append
     (for/list ([factor (mul-factors m)])
-      (latex factor))))
+      (parentize factor))))
 
 ;; -----------
 ;; power-latex
@@ -100,11 +103,13 @@
 (module+ test
   (check-equal? (latex (make-power (make-num 3) (make-sym 'x)))
                 "3^{x}")
+  (check-equal? (latex (parse-sexpr '(expt (+ x 3) 4)))
+                "(x + 3)^{4}")
   )
 
 (define-instance ((latex power) p)
   (format "~a^{~a}" 
-          (latex (power-base p))
+          (parentize (power-base p))
           (latex (power-exponent p))))
 
 ;; ----------
@@ -165,3 +170,37 @@
     [1 (car parts)]
     [_ (string-join (reverse parts) " + ")]))
 
+
+; -----
+; atom? 
+; -----
+
+(module+ test
+  (check-true  (atom? (make-num 3)))
+  (check-true  (atom? (make-sym 'x)))
+  (check-true  (atom? (parse-sexpr '(expt x 3))))
+  (check-false (atom? (parse-sexpr '(* x 3))))
+  (check-false (atom? (parse-sexpr '(+ x 3))))
+  (check-false (atom? (parse-sexpr '(ln 3))))
+  )
+
+(define (atom? e)
+  (or (num? e)
+      (sym? e)
+      (power? e)))
+
+; ---------
+; parentize
+; ---------
+
+(module+ test
+  (check-equal? (parentize (parse-sexpr '(+ x 3)))
+                "(x + 3)")
+  (check-equal? (parentize (make-num 3))
+                "3")
+  )
+
+(define (parentize e)
+  (if (atom? e)
+      (latex e)
+      (format "(~a)" (latex e))))
