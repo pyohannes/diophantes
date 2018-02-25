@@ -132,7 +132,7 @@
     (string-append "$$" latex "$$"))
   (define href
     (string-append "javascript:diowebOpen('"
-                   (~a (sexpr dexpr))
+                   (~a (infix dexpr))
                    "');"))
   `(a ((href ,href)
        (class "formula"))
