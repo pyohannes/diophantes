@@ -102,7 +102,8 @@
            functionPlot({
                target: '#plot',
                data: [{
-                   fn: '~a'
+                   fn: '~a',
+                   graphType: 'polyline'
                }]
            })" (infix f))))))
 
