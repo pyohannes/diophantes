@@ -6,6 +6,7 @@
 
 (provide
   negate
+  string-startswith
   (contract-out
     [list-trim-right        (-> list? any/c list?)]
     [list-trim-left         (-> list? any/c list?)]
@@ -61,3 +62,16 @@
   (define (negator . args)
     (not (apply f args)))
   negator)
+
+; -----------------
+; string-startswith
+; -----------------
+
+(module+ test
+  (check-true  (string-startswith "abcdefgh" "abc"))
+  (check-false (string-startswith "abcdefgh" "bc"))
+  )
+
+(define (string-startswith s prefix)
+  (string=? (substring s 0 (string-length prefix)) prefix))
+

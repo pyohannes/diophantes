@@ -10,7 +10,10 @@
 (require multimethod
          racket/string
          racket/match
-         "private/data.rkt")
+         racket/list
+         racket/bool
+         "private/data.rkt"
+         "private/util.rkt")
 
 ;; -----
 ;; latex
@@ -42,10 +45,21 @@
 (module+ test
   (check-equal? (latex (make-frac 3 4))
                 "\\frac{3}{4}")
+  (check-equal? (latex (make-frac -3 4))
+                "-\\frac{3}{4}")
+  (check-equal? (latex (make-frac 3 -4))
+                "-\\frac{3}{4}")
   )
 
 (define-instance ((latex frac) f)
-  (format "\\frac{~a}{~a}" (frac-num f) (frac-denom f)))
+  (define num (frac-num f))
+  (define denom (frac-denom f))
+  (define sign
+    (if (xor (> 0 num)
+             (> 0 denom))
+        "-"
+        ""))
+  (format "~a\\frac{~a}{~a}" sign (abs num) (abs denom)))
 
 ;; ---------
 ;; sym-latex
@@ -70,13 +84,25 @@
                 "3 + x")
   (check-equal? (latex (make-add (make-num 2) (make-sym 'x) (make-sym 'y)))
                 "2 + x + y")
+  (check-equal? (latex (make-add (make-num 3)
+                                 (make-mul (make-num -1)
+                                           (make-sym 'x))))
+                "3 -x")
+  (check-equal? (latex (make-add (make-num 3)
+                                 (make-mul (make-frac -1 2)
+                                           (make-sym 'x))))
+                "3 -\\frac{1}{2}x")
   )
 
 (define-instance ((latex add) a)
-  (string-join 
+  (define addends
     (for/list ([addend (add-addends a)])
-      (latex addend))
-    " + "))
+      (define l (latex addend))
+      (cons (if (string-startswith l "-")
+                " "
+                " + ")
+            l)))
+  (apply string-append (cdr (flatten addends))))
 
 ;; ---------
 ;; mul-latex
@@ -89,12 +115,20 @@
                 "2xy")
   (check-equal? (latex (parse-sexpr '(* (+ 2 x) (+ 3 y))))
                 "(2 + x)(3 + y)")
+  (check-equal? (latex (make-mul (make-num -1) (make-sym 'x)))
+                "-x")
   )
 
 (define-instance ((latex mul) m)
-  (apply string-append
-    (for/list ([factor (mul-factors m)])
-      (parentize factor))))
+  (define (_ factors)
+    (apply string-append
+      (for/list ([factor factors])
+        (parentize factor))))
+  (define factors (mul-factors m))
+  (if (equal? (car factors) (make-num -1) )
+      (string-append "-" 
+                     (_ (cdr factors)))
+      (_ factors)))
 
 ;; -----------
 ;; power-latex
@@ -187,6 +221,7 @@
 (define (atom? e)
   (or (num? e)
       (sym? e)
+      (frac? e)
       (power? e)))
 
 ; ---------
