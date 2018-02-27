@@ -133,6 +133,18 @@
   (check-exn 
     exn:fail?
     (lambda () (parse-infix #t)))
+  (check-equal? (parse-infix "((x+3)^2) + (x-1)^3")
+                (make-add (make-power (make-add (make-sym 'x)
+                                                (make-num 3))
+                                      (make-num 2))
+                          (make-power (make-add (make-sym 'x)
+                                                (make-mul (make-num -1)
+                                                          (make-num 1)))
+                                      (make-num 3))))
+  (check-equal? (parse-infix "x-1")
+                (make-add (make-sym 'x)
+                          (make-mul (make-num -1)
+                                    (make-num 1))))
   )
 
 (define (parse-infix s)
@@ -150,25 +162,26 @@
     (tokens value-tokens op-tokens)
     (precs (left - +)
            (left * /)
+           (left NEG)
            (right ^))
     (grammar
       (exp [(NUM) $1]
            [(SYM) $1]
            [(FUN LPAR exp RPAR) (list $1 $3)]
            [(LPAR exp RPAR) $2]
-           [(- exp) (list '- $2)]
            [(exp + exp) (list '+ $1 $3)]
            [(exp - exp) (list '- $1 $3)]
            [(exp * exp) (list '* $1 $3)]
            [(exp / exp) (list '/ $1 $3)]
            [(exp ^ exp) (list 'expt $1 $3)]
+           [(- exp) (prec NEG) (list '- $2)]
            ))))
 
 (define-tokens value-tokens
   (NUM SYM FUN))
 
 (define-empty-tokens op-tokens
-  (+ - * / ^ EOF LPAR RPAR))
+  (+ - * / ^ EOF LPAR RPAR NEG))
 
 (define infix-lexer
   (lexer 
@@ -176,7 +189,7 @@
      (token-FUN (string->symbol lexeme))]
     [(:: alphabetic (:? "_" (:+ (:or alphabetic numeric))))
      (token-SYM (string->symbol lexeme))]
-    [(:: (:? #\-) (:+ (char-range #\0 #\9)))
+    [(:+ (char-range #\0 #\9))
      (token-NUM (string->number lexeme))]
     [(:or "+" "-" "*" "/" "^")
      (string->symbol lexeme)]
