@@ -73,8 +73,10 @@
     (<caption/tablerow> "Formula")
     (<formula/tablerow> (format-math (latex f/dexpr-simple)
                                      f/dexpr-simple))
-    (<caption/tablerow> "Plot")
-    (<formula/tablerow> (<plot> f/dexpr-simple))
+    (when (linear? f/dexpr-simple)
+          (<caption/tablerow> "Plot"))
+    (when (linear? f/dexpr-simple)
+          (<formula/tablerow> (<plot> f/dexpr-simple)))
     (<caption/tablerow> "Derivative")
     (<formula/tablerow> (format-math (string-append
                                        "\\frac{\\delta}{\\delta x} = "
