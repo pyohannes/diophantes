@@ -16,6 +16,7 @@
 
 (module+ test
   (require rackunit
+           "simplify.rkt"
            "parse.rkt")
 
   (check-equal? (differentiate (make-sym 'x))
@@ -96,9 +97,10 @@
 ;; ----------
 
 (module+ test
-  (check-equal? (diff/i (make-mul (make-sym 'x) (make-num 3)) 'x)
-                (make-add (make-mul (make-num 0) (make-sym 'x))
-                          (make-mul (make-num 3) (make-num 1))))
+  (check-equal? (simplify (diff/i (parse-sexpr '(* x 3)) 'x))
+                (make-num 3))
+  (check-equal? (simplify (diff/i (parse-sexpr '(* 1 -1 (expt x -1))) 'x))
+                (parse-sexpr '(expt x -2)))
   )
 
 (define-instance ((diff/i mul) m s)
@@ -107,22 +109,21 @@
     (define d/f2 (diff/i f2 s))
     (make-add (make-mul d/f2 f1)
               (make-mul f2 d/f1)))
-  (define (diff/i/n fs)
-    (if (= (length fs) 1)
-        (car fs)
-        (diff/i/2 (car fs)
-                         (diff/i/n (cdr fs)))))
-  (diff/i/n (mul-factors m)))
+  (define factors (mul-factors m))
+  (if (= 1 (length factors))
+      (diff/i (car factors) s)
+      (diff/i/2 (car factors)
+                (apply make-mul (cdr factors)))))
 
 ;; ------------
 ;; power-diff/i
 ;; ------------
 
 (module+ test
-  (check-equal? (diff/i (parse-sexpr '(expt x 3)) 'x)
-                (parse-sexpr '(* (expt x 3)
-                                 (+ (* 1 3 (expt x -1))
-                                    (* 0 (ln x))))))
+  (check-equal? (simplify (diff/i (parse-sexpr '(expt x 3)) 'x))
+                (parse-sexpr '(* 3 (expt x 2))))
+  (check-equal? (simplify (diff/i (parse-sexpr '(expt x -1)) 'x))
+                (parse-sexpr '(* -1 (expt x -2))))
   )
 
 (define-instance ((diff/i power) p s)
