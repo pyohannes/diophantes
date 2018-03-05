@@ -27,6 +27,7 @@
 
 (module+ test
   (require rackunit
+           "simplify.rkt"
            "parse.rkt")
 
   (check-equal? (latex (make-num 3))
@@ -135,19 +136,40 @@
                 "(2 + x) (3 + y)")
   (check-equal? (latex (make-mul (make-num -1) (make-sym 'x)))
                 "-x")
+  (check-equal? (latex (simplify (parse-sexpr '(/ 1 x))))
+                "\\frac{1}{x}")
+  (check-equal? (latex (simplify (parse-sexpr '(/ (* 3 a b) (* 4 x y)))))
+                "\\frac{3}{4} \\frac{a b}{x y}")
   )
 
 (define-instance ((latex mul) m)
-  (define (_ factors)
+  (define (format-* factors)
     (string-join
       (for/list ([factor factors])
         (parentize factor))
       " "))
+  (define (format-/ f+ f-)
+    (cond ((null? f-)
+           (format-* f+))
+          ((null? f+)
+           (format-/ (list (make-num 1)) 
+                     f-))
+          ((and (> (length f+) 1)
+                (or (frac? (car f+))
+                    (num? (car f+))))
+           (format "~a ~a" (latex (car f+))
+                           (format-/ (cdr f+) f-)))
+          (else
+            (format "\\frac{~a}{~a}" (format-* f+) (format-* f-)))))
   (define factors (mul-factors m))
-  (if (equal? (car factors) (make-num -1) )
+  (define factors-+ (filter (negate negative-exponent?) factors))
+  (define factors-- (map abs-exponent
+                         (filter negative-exponent? factors)))
+  (if (and (not (null? factors-+))
+           (equal? (car factors-+) (make-num -1)))
       (string-append "-" 
-                     (_ (cdr factors)))
-      (_ factors)))
+                     (format-/ (cdr factors-+) factors--))
+      (format-/ factors-+ factors--)))
 
 ;; -----------
 ;; power-latex
@@ -158,12 +180,16 @@
                 "3^{x}")
   (check-equal? (latex (parse-sexpr '(expt (+ x 3) 4)))
                 "(x + 3)^{4}")
+  (check-equal? (latex (make-power (make-sym 'x) (make-num -1)))
+                "\\frac{1}{x}")
   )
 
 (define-instance ((latex power) p)
-  (format "~a^{~a}" 
-          (parentize (power-base p))
-          (latex (power-exponent p))))
+  (if (negative-exponent? p)
+      (latex (make-mul p))
+      (format "~a^{~a}" 
+              (parentize (power-base p))
+              (latex (power-exponent p)))))
 
 ;; ----------
 ;; logn-latex
@@ -261,3 +287,38 @@
   (if (atom? e)
       (latex e)
       (format "(~a)" (latex e))))
+
+; -----------------
+; negative-exponent 
+; -----------------
+
+(module+ test
+  (check-true  (negative-exponent? (parse-sexpr '(expt x -1))))
+  (check-false (negative-exponent? (parse-sexpr '(expt x 2))))
+  (check-false (negative-exponent? (parse-sexpr '(expt x y))))
+  )
+
+(define (negative-exponent? p)
+  (and (power? p)
+       (num? (power-exponent p))
+       (negative? (num-val (power-exponent p)))))
+
+; ------------
+; abs-exponent
+; ------------
+
+(module+ test
+  (check-equal? (abs-exponent (parse-sexpr '(expt x -2)))
+                (parse-sexpr '(expt x 2)))
+  (check-equal? (abs-exponent (parse-sexpr '(expt x 2)))
+                (parse-sexpr '(expt x 2)))
+  (check-equal? (abs-exponent (parse-sexpr '(expt x -1)))
+                (parse-sexpr 'x))
+  )
+
+(define (abs-exponent p)
+  (define exponent-val (abs (num-val (power-exponent p))))
+  (define base (power-base p))
+  (if (= 1 exponent-val)
+      base
+      (make-power base (make-num exponent-val))))
