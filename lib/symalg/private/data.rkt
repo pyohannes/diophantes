@@ -4,12 +4,13 @@
 
 (provide
   make-num make-sym make-add make-mul make-frac make-power make-logn 
-  make-polynomial/si
+  make-constant make-polynomial/si
   (struct-out num)
+  (struct-out frac)
+  (struct-out constant)
   (struct-out sym)
   (struct-out add)
   (struct-out mul)
-  (struct-out frac)
   (struct-out power)
   (struct-out logn)
   (struct-out polynomial/si)
@@ -19,6 +20,7 @@
 ;; Import and implementation section
 
 (require multimethod
+         racket/math
          "util.rkt")
 
 ;; --------
@@ -40,6 +42,36 @@
 ;; ---
 
 (struct num (val))
+
+;; -------------
+;; make-constant
+;; -------------
+
+(module+ test
+  (check-equal? (make-constant 'e)
+                (constant 'e (exp 1)))
+  (check-equal? (make-constant 'pi)
+                (constant 'pi pi))
+  (check-exn
+    exn:fail?
+    (lambda () (make-constant 'x)))
+  (check-exn
+    exn:fail?
+    (lambda () (make-constant 1)))
+  )
+
+(define known-constants
+  (hash 'e  (exp 1)
+        'pi pi))
+
+(define (make-constant c)
+  (constant c (hash-ref known-constants c)))
+
+;; --------
+;; constant
+;; --------
+
+(struct constant (name value))
 
 ;; --------
 ;; make-sym

@@ -104,7 +104,7 @@
                    fn: '~a',
                    graphType: 'polyline'
                }]
-           })" (infix f))))))
+           })" (infix f #t))))))
 
 (define (<img/png> data)
   (sleep 100)

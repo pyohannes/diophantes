@@ -54,6 +54,18 @@
 (define-instance ((preorder sym) s)
   (list s))
 
+;; -----------------
+;; constant-preorder
+;; -----------------
+
+(module+ test
+  (check-equal? (preorder (make-constant 'pi))
+                (list (make-constant 'pi)))
+  )
+
+(define-instance ((preorder constant) c)
+  (list c))
+
 ;; ------------
 ;; add-preorder
 ;; ------------

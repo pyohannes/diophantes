@@ -62,6 +62,24 @@
   (format "~a\\frac{~a}{~a}" sign (abs num) (abs denom)))
 
 ;; ---------
+;; constant-latex
+;; ---------
+
+(module+ test
+  (check-equal? (latex (make-constant 'pi))
+                "\\pi")
+  (check-equal? (latex (make-constant 'e))
+                "e")
+  (check-equal? (latex (make-mul (make-constant 'e) (make-constant 'pi)))
+                "e \\pi")
+  )
+
+(define-instance ((latex constant) c)
+  (match (constant-name c)
+    ['pi "\\pi"]
+    ['e  "e"]))
+
+;; ---------
 ;; sym-latex
 ;; ---------
 
@@ -91,7 +109,7 @@
   (check-equal? (latex (make-add (make-num 3)
                                  (make-mul (make-frac -1 2)
                                            (make-sym 'x))))
-                "3 -\\frac{1}{2}x")
+                "3 -\\frac{1}{2} x")
   )
 
 (define-instance ((latex add) a)
@@ -110,20 +128,21 @@
 
 (module+ test
   (check-equal? (latex (make-mul (make-num 3) (make-sym 'x)))
-                "3x")
+                "3 x")
   (check-equal? (latex (make-mul (make-num 2) (make-sym 'x) (make-sym 'y)))
-                "2xy")
+                "2 x y")
   (check-equal? (latex (parse-sexpr '(* (+ 2 x) (+ 3 y))))
-                "(2 + x)(3 + y)")
+                "(2 + x) (3 + y)")
   (check-equal? (latex (make-mul (make-num -1) (make-sym 'x)))
                 "-x")
   )
 
 (define-instance ((latex mul) m)
   (define (_ factors)
-    (apply string-append
+    (string-join
       (for/list ([factor factors])
-        (parentize factor))))
+        (parentize factor))
+      " "))
   (define factors (mul-factors m))
   (if (equal? (car factors) (make-num -1) )
       (string-append "-" 
@@ -171,17 +190,17 @@
 
 (module+ test
   (check-equal? (latex (make-polynomial/si 'x '(0 1 2)))
-                "2x^{2} + x")
+                "2 x^{2} +  x")
   (check-equal? (latex (make-polynomial/si 'x '(3 3 3 3)))
-                "3x^{3} + 3x^{2} + 3x + 3")
+                "3 x^{3} + 3 x^{2} + 3 x + 3 ")
   (check-equal? (latex (make-polynomial/si 'y '(9 0 0 0 0 1)))
-                "y^{5} + 9")
+                " y^{5} + 9 ")
   (check-equal? (latex (make-polynomial/si 'y '()))
                 "0")
   (check-equal? (latex (make-polynomial/si 'y '(4)))
-                "4")
+                "4 ")
   (check-equal? (latex (make-polynomial/si 'y '(0 0 1)))
-                "y^{2}")
+                " y^{2}")
   )
 
 (define-instance ((latex polynomial/si) p)
@@ -193,6 +212,7 @@
       (string-append (if (> c 1)
                          (number->string c)
                          "")
+                     " "
                      (if (> e 0)
                          indet
                          "")
@@ -212,6 +232,7 @@
 (module+ test
   (check-true  (atom? (make-num 3)))
   (check-true  (atom? (make-sym 'x)))
+  (check-true  (atom? (make-constant 'pi)))
   (check-true  (atom? (parse-sexpr '(expt x 3))))
   (check-false (atom? (parse-sexpr '(* x 3))))
   (check-false (atom? (parse-sexpr '(+ x 3))))
@@ -222,6 +243,7 @@
   (or (num? e)
       (sym? e)
       (frac? e)
+      (constant? e)
       (power? e)))
 
 ; ---------

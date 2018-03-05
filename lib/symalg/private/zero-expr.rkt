@@ -53,6 +53,18 @@
 (define-instance ((zero-expr? frac) f)
   (= (frac-num f) 0))
 
+;; -------------------
+;; constant-zero-expr?
+;; -------------------
+
+(module+ test
+  (check-false (zero-expr? (make-constant 'pi)))
+  (check-false (zero-expr? (make-constant 'e)))
+  )
+
+(define-instance ((zero-expr? constant) c)
+  #f)
+
 ;; ---------
 ;; add-zero-expr?
 ;; ---------

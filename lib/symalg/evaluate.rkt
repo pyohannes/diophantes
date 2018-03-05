@@ -21,7 +21,8 @@
 ;; ------------
 
 (module+ test
-  (require rackunit)
+  (require rackunit
+           racket/math)
 
   (check-equal? ((evaluate (make-num 3))
                  9)
@@ -53,6 +54,24 @@
   (define (_ . rest)
     (/ (frac-num f)
        (frac-denom f)))
+  _)
+
+;; -----------------
+;; constant-evaluate
+;; -----------------
+
+(module+ test
+  (check-equal? ((evaluate (make-constant 'pi))
+                 9)
+                pi)
+  (check-equal? ((evaluate (make-constant 'e))
+                 3)
+                (exp 1))
+  )
+
+(define-instance ((evaluate constant) c)
+  (define (_ . rest)
+    (constant-value c))
   _)
 
 ;; ------------

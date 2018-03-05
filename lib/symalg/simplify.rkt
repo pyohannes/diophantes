@@ -82,6 +82,20 @@
       (make-num (frac-num f))
       f))
 
+;; -----------------
+;; constant-simplify
+;; -----------------
+
+(module+ test
+
+  ;; ASAE-3: u is a constant.
+  (check-equal? (simplify (make-constant 'pi))
+                (make-constant 'pi))
+  )
+
+(define-instance ((simplify constant) c)
+  c)
+
 ;; ------------
 ;; sym-simplify
 ;; ------------

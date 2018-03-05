@@ -25,6 +25,10 @@
                 (make-num 3))
   (check-equal? (parse-sexpr 'x)
                 (make-sym 'x))
+  (check-equal? (parse-sexpr 'pi)
+                (make-constant 'pi))
+  (check-equal? (parse-sexpr 'e)
+                (make-constant 'e))
   (check-equal? (parse-sexpr '(+ x 3))
                 (make-add (make-sym 'x) (make-num 3)))
   (check-equal? (parse-sexpr '(+ x y 3))
@@ -63,7 +67,10 @@
     [(? number? n)
      (make-num n)]
     [(? symbol? s)
-     (make-sym s)]
+     (match s
+       ['pi (make-constant 'pi)]
+       ['e  (make-constant 'e)]
+       [_   (make-sym s)])]
     [(list 'ln first)
      (parse-sexpr (list 'logn first (exp 1)))]
     [(list '/ first second)
@@ -102,6 +109,10 @@
                 (make-num 3))
   (check-equal? (parse-infix "x")
                 (make-sym 'x))
+  (check-equal? (parse-infix "pi")
+                (make-constant 'pi))
+  (check-equal? (parse-infix "e")
+                (make-constant 'e))
   (check-equal? (parse-infix "x + 3")
                 (make-add (make-sym 'x) (make-num 3)))
   (check-equal? (parse-infix "x + y + 3")

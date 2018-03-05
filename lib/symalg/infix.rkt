@@ -1,6 +1,6 @@
 #lang racket/base
 
-;; Converting symbolic algebraic expressions to infix expressions.
+;; Converting symbolic algebraic expressions to infix/i expressions.
 
 (provide infix)
 
@@ -12,17 +12,21 @@
          "private/data.rkt")
 
 ;; -----
-;; infix
+;; infix/i
 ;; -----
 
-(define-generic (infix e))
+(define (infix e [resolve #f])
+  (infix/i e resolve))
+
+(define-generic (infix/i e))
 
 ;; ---------
-;; num-infix
+;; num-infix/i
 ;; ---------
 
 (module+ test
-  (require rackunit)
+  (require rackunit
+           racket/math)
 
   (check-equal? (infix (make-num 3))
                 "3")
@@ -30,11 +34,11 @@
                 "0")
   )
 
-(define-instance ((infix num) n)
+(define-instance ((infix/i num) n resolve)
   (number->string (num-val n)))
 
 ;; ----------
-;; frac-infix
+;; frac-infix/i
 ;; ----------
 
 (module+ test
@@ -42,11 +46,31 @@
                 "3/4")
   )
 
-(define-instance ((infix frac) f)
+(define-instance ((infix/i frac) f resolve)
   (format "~a/~a" (frac-num f) (frac-denom f)))
 
+;; --------------
+;; constant-infix/i
+;; --------------
+
+(module+ test
+  (check-equal? (infix (make-constant 'pi))
+                "pi")
+  (check-equal? (infix (make-constant 'pi) #t)
+                (format "~a" pi))
+  (check-equal? (infix (make-constant 'e))
+                "e")
+  (check-equal? (infix (make-constant 'e) #t)
+                (format "~a" (exp 1)))
+  )
+
+(define-instance ((infix/i constant) c resolve)
+  (format "~a" (if resolve
+                   (constant-value c)
+                   (constant-name c))))
+
 ;; ---------
-;; sym-infix
+;; sym-infix/i
 ;; ---------
 
 (module+ test
@@ -54,11 +78,11 @@
                 "x")
   )
 
-(define-instance ((infix sym) s)
+(define-instance ((infix/i sym) s resolve)
   (symbol->string (sym-val s)))
 
 ;; ---------
-;; add-infix
+;; add-infix/i
 ;; ---------
 
 (module+ test
@@ -68,13 +92,14 @@
                 "3 + x + 4")
   )
 
-(define-instance ((infix add) a)
+(define-instance ((infix/i add) a resolve)
   (string-join
-    (map infix (add-addends a))
+    (for/list ([e (add-addends a)])
+      (infix/i e resolve))
     " + "))
 
 ;; ---------
-;; mul-infix
+;; mul-infix/i
 ;; ---------
 
 (module+ test
@@ -84,13 +109,14 @@
                 "3 * x * 4")
   )
 
-(define-instance ((infix mul) m)
+(define-instance ((infix/i mul) m resolve)
   (string-join
-    (map infix (mul-factors m))
+    (for/list ([e (mul-factors m)])
+      (infix/i e resolve))
     " * "))
 
 ;; -----------
-;; power-infix
+;; power-infix/i
 ;; -----------
 
 (module+ test
@@ -100,12 +126,12 @@
                 "(3)^(x)")
   )
 
-(define-instance ((infix power) p)
-  (format "(~a)^(~a)" (infix (power-base p))
-                      (infix (power-exponent p))))
+(define-instance ((infix/i power) p resolve)
+  (format "(~a)^(~a)" (infix/i (power-base p) resolve)
+                      (infix/i (power-exponent p) resolve)))
 
 ;; ----------
-;; logn-infix
+;; logn-infix/i
 ;; ----------
 
 (module+ test
@@ -117,10 +143,10 @@
                 "ln(3)")
   )
 
-(define-instance ((infix logn) l)
-  (define s/n (infix (logn-n l)))
+(define-instance ((infix/i logn) l resolve)
+  (define s/n (infix/i (logn-n l) resolve))
   (define base (logn-base l))
   (cond ((equal? base (make-num (exp 1)))
          (format "ln(~a)" s/n))
         (else
-          (format "logn(~a, ~a)" s/n (infix base)))))
+          (format "logn(~a, ~a)" s/n (infix/i base resolve)))))

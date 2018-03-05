@@ -63,6 +63,18 @@
 (define-instance ((diff/i frac) f s)
   (make-num 0))
 
+;; ---------------
+;; constant-diff/i
+;; ---------------
+
+(module+ test
+  (check-equal? (diff/i (make-constant 'pi) 'x)
+                (make-num 0))
+  )
+
+(define-instance ((diff/i constant) c s)
+  (make-num 0))
+
 ;; ----------
 ;; sym-diff/i
 ;; ----------

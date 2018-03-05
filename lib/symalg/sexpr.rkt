@@ -47,6 +47,20 @@
         (frac-num f)
         (frac-denom f)))
 
+;; --------------
+;; constant-sexpr
+;; --------------
+
+(module+ test
+  (check-equal? (sexpr (make-constant 'pi))
+                'pi)
+  (check-equal? (sexpr (make-constant 'e))
+                'e)
+  )
+
+(define-instance ((sexpr constant) c)
+  (constant-name c))
+
 ;; ---------
 ;; sym-sexpr
 ;; ---------

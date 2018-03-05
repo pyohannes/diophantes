@@ -31,6 +31,7 @@
       (make-num 1)
       (make-frac 1 2)
       (make-sym 'x)
+      (make-constant 'pi)
       (make-add (make-sym 'x) (make-num 4))
       (make-mul (make-sym 'x) (make-num 4))
       (make-power (make-sym 'x) (make-num 3))
@@ -55,6 +56,7 @@
   (check-smaller (make-frac 3 4) (make-num 1))
 
   ;; O-7: num < any/c
+  (check-smaller (make-num 3) (make-constant 'pi))
   (check-smaller (make-num 3) (make-sym 'a))
   (check-smaller (make-num 3) (make-mul (make-sym 'a) (make-sym 'b)))
   (check-smaller (make-num 3) (make-add (make-sym 'a) (make-sym 'b)))
@@ -70,6 +72,9 @@
 
 (define-instance ((smaller? num frac) n f)
   (< (constant->number n) (constant->number f)))
+
+(define-instance ((smaller? num constant) n c)
+  #t)
 
 (define-instance ((smaller? num sym) n s)
   #t)
@@ -95,6 +100,7 @@
   (check-smaller (make-frac 3 4) (make-frac 4 3))
 
   ;; O-7: frac < any/c
+  (check-smaller (make-frac 3 4) (make-constant 'pi))
   (check-smaller (make-frac 3 4) (make-sym 'a))
   (check-smaller (make-frac 3 4) (make-mul (make-sym 'a) (make-sym 'b)))
   (check-smaller (make-frac 3 4) (make-add (make-sym 'a) (make-sym 'b)))
@@ -104,6 +110,9 @@
 
 (define-instance ((smaller? frac frac) f1 f2)
   (< (constant->number f1) (constant->number f2)))
+
+(define-instance ((smaller? frac constant) n c)
+  #t)
 
 (define-instance ((smaller? frac sym) n s)
   #t)
@@ -120,11 +129,56 @@
 (define-instance ((smaller? frac power) n p)
   #t)
 
+;; --------
+;; constant
+;; --------
+
+(module+ test
+  ;; O-1: Numbers and constanttions
+  (check-smaller (make-constant 'e) (make-constant 'pi))
+
+  ;; O-7: constant < any/c
+  (check-smaller (make-num 3) (make-constant 'pi))
+  (check-smaller (make-frac 3 4) (make-constant 'pi))
+  (check-smaller (make-constant 'pi) (make-sym 'a))
+  (check-smaller (make-constant 'pi) (make-mul (make-sym 'a) (make-sym 'b)))
+  (check-smaller (make-constant 'pi) (make-add (make-sym 'a) (make-sym 'b)))
+  (check-smaller (make-constant 'pi) (make-logn (make-sym 'a) (make-sym 'b)))
+  (check-smaller (make-constant 'pi) (make-power (make-sym 'a) (make-sym 'b)))
+  )
+
+(define-instance ((smaller? constant num) c n)
+  #f)
+
+(define-instance ((smaller? constant frac) c f)
+  #f)
+
+(define-instance ((smaller? constant constant) c1 c2)
+  (symbol<? (constant-name c1)
+            (constant-name c2)))
+
+(define-instance ((smaller? constant sym) c s)
+  #t)
+
+(define-instance ((smaller? constant add) c a)
+  #t)
+
+(define-instance ((smaller? constant mul) c m)
+  #t)
+
+(define-instance ((smaller? constant logn) c l)
+  #t)
+
+(define-instance ((smaller? constant power) c p)
+  #t)
+
 ;; ---
 ;; sym
 ;; ---
 
 (module+ test
+  (check-smaller (make-constant 'pi) (make-sym 'y))
+
   ;; O-2: Symbols
   (check-smaller (make-sym 'x) (make-sym 'y))
 
@@ -140,6 +194,9 @@
   #f)
 
 (define-instance ((smaller? sym frac) s f)
+  #f)
+
+(define-instance ((smaller? sym constant) s c)
   #f)
 
 (define-instance ((smaller? sym add) s a)
@@ -181,6 +238,9 @@
   #f)
 
 (define-instance ((smaller? add frac) a f)
+  #f)
+
+(define-instance ((smaller? add constant) a c)
   #f)
 
 (define-instance ((smaller? add sym) a s)
@@ -228,6 +288,9 @@
   (smaller-op-list (mul-factors m1) (mul-factors m2)))
 
 (define-instance ((smaller? mul num) m n)
+  #f)
+
+(define-instance ((smaller? mul constant) m c)
   #f)
 
 (define-instance ((smaller? mul sym) m s)
@@ -281,6 +344,9 @@
 (define-instance ((smaller? power frac) p f)
   #f)
 
+(define-instance ((smaller? power constant) p c)
+  #f)
+
 (define-instance ((smaller? power sym) p s)
   (smaller? p (make-power s (make-num 1))))
 
@@ -315,6 +381,9 @@
   #f)
 
 (define-instance ((smaller? logn frac) l f)
+  #f)
+
+(define-instance ((smaller? logn constant) l c)
   #f)
 
 (define-instance ((smaller? logn add) l a)
