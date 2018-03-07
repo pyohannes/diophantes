@@ -63,7 +63,7 @@
              (value ">")))))
 
 (define (<formulaoutput> formula)
-  (define f/dexpr (parse-infix formula))
+  (define f/dexpr (parse formula))
   (define f/dexpr-simple (simplify f/dexpr))
   (define f/dexpr-deriv (simplify (differentiate f/dexpr-simple)))
   (list-non-null
@@ -141,6 +141,11 @@
   `(a ((href ,href)
        (class "formula"))
       ,formula))
+
+(define (parse s)
+  (with-handlers ([exn:fail? (lambda (e)
+                               (parse-infix s))])
+    (parse-sexpr (read (open-input-string s)))))
 
 ; -----------------
 ; main invocation
