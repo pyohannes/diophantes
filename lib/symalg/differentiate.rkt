@@ -170,6 +170,53 @@
         (else
           (error "Not implemented"))))
 
+;; --------
+;; sin-diff
+;; --------
+
+(module+ test
+  (check-equal? (diff/i (make-sin (make-sym 'x)) 'x)
+                (make-mul (make-cos (make-sym 'x)) (make-num 1)))
+  )
+
+(define-instance ((diff/i sin_) f s)
+  (define n (sin_-n f))
+  (make-mul (make-cos n)
+            (diff/i n s)))
+
+;; --------
+;; cos-diff
+;; --------
+
+(module+ test
+  (check-equal? (diff/i (make-cos (make-sym 'x)) 'x)
+                (make-mul (make-num -1) 
+                          (make-sin (make-sym 'x))
+                          (make-num 1)))
+  )
+
+(define-instance ((diff/i cos_) f s)
+  (define n (cos_-n f))
+  (make-mul (make-num -1) 
+            (make-sin n)
+            (diff/i n s)))
+
+;; --------
+;; tan-diff
+;; --------
+
+(module+ test
+  (check-equal? (simplify (diff/i (make-tan (make-sym 'x)) 'x))
+                (make-power (make-cos (make-sym 'x))
+                            (make-num -2)))
+  )
+
+(define-instance ((diff/i tan_) f s)
+  (define n (tan_-n f))
+  (make-mul (diff/i n s)
+            (make-power (make-cos n) 
+                        (make-num -2))))
+
 ;; --------------------
 ;; polynomial/si-diff/i
 ;; --------------------

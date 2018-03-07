@@ -113,6 +113,39 @@
 (define-instance ((zero-expr? logn) l)
   #f)
 
+;; --------------
+;; cos-zero-expr?
+;; --------------
+
+(module+ test
+  (check-false (zero-expr? (make-cos (make-sym 'x))))
+  )
+
+(define-instance ((zero-expr? cos_) c)
+  #f)
+
+;; --------------
+;; sin-zero-expr?
+;; --------------
+
+(module+ test
+  (check-false (zero-expr? (make-sin (make-sym 'x))))
+  )
+
+(define-instance ((zero-expr? sin_) c)
+  #f)
+
+;; --------------
+;; tan-zero-expr?
+;; --------------
+
+(module+ test
+  (check-false (zero-expr? (make-tan (make-sym 'x))))
+  )
+
+(define-instance ((zero-expr? tan_) c)
+  #f)
+
 ;; -------------------
 ;; polynomial/si-zero-expr?
 ;; -------------------

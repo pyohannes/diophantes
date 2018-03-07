@@ -210,6 +210,48 @@
         (else
           (format "\\log_{~a} ~a" (latex base) s/n))))
 
+;; ----------
+;; cos-latex
+;; ----------
+
+(module+ test
+  (check-equal? (latex (make-cos (make-num 3)))
+                "\\cos(3)")
+  (check-equal? (latex (make-cos (make-sym 'x)))
+                "\\cos(x)")
+  )
+
+(define-instance ((latex cos_) c)
+  (format "\\cos(~a)" (latex (cos_-n c))))
+
+;; ----------
+;; sin-latex
+;; ----------
+
+(module+ test
+  (check-equal? (latex (make-sin (make-num 3)))
+                "\\sin(3)")
+  (check-equal? (latex (make-sin (make-sym 'x)))
+                "\\sin(x)")
+  )
+
+(define-instance ((latex sin_) s)
+  (format "\\sin(~a)" (latex (sin_-n s))))
+
+;; ----------
+;; tan-latex
+;; ----------
+
+(module+ test
+  (check-equal? (latex (make-tan (make-num 3)))
+                "\\tan(3)")
+  (check-equal? (latex (make-tan (make-sym 'x)))
+                "\\tan(x)")
+  )
+
+(define-instance ((latex tan_) s)
+  (format "\\tan(~a)" (latex (tan_-n s))))
+
 ;; -------------------
 ;; polynomial/si-latex
 ;; -------------------
@@ -262,13 +304,20 @@
   (check-true  (atom? (parse-sexpr '(expt x 3))))
   (check-false (atom? (parse-sexpr '(* x 3))))
   (check-false (atom? (parse-sexpr '(+ x 3))))
-  (check-false (atom? (parse-sexpr '(ln 3))))
+  (check-true  (atom? (parse-sexpr '(ln 3))))
+  (check-true  (atom? (parse-sexpr '(cos 3))))
+  (check-true  (atom? (parse-sexpr '(sin 3))))
+  (check-true  (atom? (parse-sexpr '(tan 3))))
   )
 
 (define (atom? e)
   (or (num? e)
       (sym? e)
       (frac? e)
+      (cos_? e)
+      (sin_? e)
+      (tan_? e)
+      (logn? e)
       (constant? e)
       (power? e)))
 

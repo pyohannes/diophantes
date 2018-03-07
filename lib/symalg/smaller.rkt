@@ -18,6 +18,21 @@
 
 (define-generic (smaller? e1 e2))
 
+; --------------------
+; define-instance-list
+; --------------------
+
+(define-syntax define-instance-list
+  (syntax-rules ()
+    [(_ ((fname type type:other) a1 a2) body ...)
+     (define-instance ((fname type type:other) a1 a2)
+       body ...)]
+    [(_ ((fname type type:other type:rest ...) a1 a2) body ...)
+     (begin
+       (define-instance ((fname type type:other) a1 a2)
+          body ...)
+       (define-instance-list ((fname type type:rest ...) a1 a2) body ...))]))
+
 ;; ---
 ;; num
 ;; ---
@@ -36,6 +51,9 @@
       (make-mul (make-sym 'x) (make-num 4))
       (make-power (make-sym 'x) (make-num 3))
       (make-logn (make-sym 'x) (make-num 2))
+      (make-cos (make-sym 'x))
+      (make-sin (make-sym 'x))
+      (make-tan (make-sym 'x))
     ))
 
   (for ([e1 terms]
@@ -73,22 +91,8 @@
 (define-instance ((smaller? num frac) n f)
   (< (constant->number n) (constant->number f)))
 
-(define-instance ((smaller? num constant) n c)
-  #t)
-
-(define-instance ((smaller? num sym) n s)
-  #t)
-
-(define-instance ((smaller? num add) n a)
-  #t)
-
-(define-instance ((smaller? num mul) n m)
-  #t)
-
-(define-instance ((smaller? num logn) n l)
-  #t)
-
-(define-instance ((smaller? num power) n p)
+(define-instance-list ((smaller? num constant sym add mul logn cos_ sin_ tan_ 
+                                 power) n e)
   #t)
 
 ;; ----
@@ -111,22 +115,40 @@
 (define-instance ((smaller? frac frac) f1 f2)
   (< (constant->number f1) (constant->number f2)))
 
-(define-instance ((smaller? frac constant) n c)
+(define-instance-list ((smaller? frac constant sym add mul logn cos_ sin_ tan_ 
+                                 power) n e)
   #t)
 
-(define-instance ((smaller? frac sym) n s)
-  #t)
+;; --------
+;; constant
+;; --------
 
-(define-instance ((smaller? frac add) n a)
-  #t)
+(module+ test
+  ;; O-1: Numbers and constanttions
+  (check-smaller (make-constant 'e) (make-constant 'pi))
 
-(define-instance ((smaller? frac mul) n m)
-  #t)
+  ;; O-7: constant < any/c
+  (check-smaller (make-num 3) (make-constant 'pi))
+  (check-smaller (make-frac 3 4) (make-constant 'pi))
+  (check-smaller (make-constant 'pi) (make-sym 'a))
+  (check-smaller (make-constant 'pi) (make-mul (make-sym 'a) (make-sym 'b)))
+  (check-smaller (make-constant 'pi) (make-add (make-sym 'a) (make-sym 'b)))
+  (check-smaller (make-constant 'pi) (make-logn (make-sym 'a) (make-sym 'b)))
+  (check-smaller (make-constant 'pi) (make-power (make-sym 'a) (make-sym 'b)))
+  )
 
-(define-instance ((smaller? frac logn) n l)
-  #t)
+(define-instance ((smaller? constant num) c n)
+  #f)
 
-(define-instance ((smaller? frac power) n p)
+(define-instance ((smaller? constant frac) c f)
+  #f)
+
+(define-instance ((smaller? constant constant) c1 c2)
+  (symbol<? (constant-name c1)
+            (constant-name c2)))
+
+(define-instance-list ((smaller? constant sym add mul logn cos_ sin_ tan_ 
+                                 power) n e)
   #t)
 
 ;; --------
@@ -190,15 +212,6 @@
 (define-instance ((smaller? sym sym) s1 s2)
   (symbol<? (sym-val s1) (sym-val s2)))
 
-(define-instance ((smaller? sym num) s n)
-  #f)
-
-(define-instance ((smaller? sym frac) s f)
-  #f)
-
-(define-instance ((smaller? sym constant) s c)
-  #f)
-
 (define-instance ((smaller? sym add) s a)
   (smaller? (make-add (make-num 0) s) a))
 
@@ -208,7 +221,10 @@
 (define-instance ((smaller? sym power) s p)
   (smaller? (make-power s (make-num 1)) p))
 
-(define-instance ((smaller? sym logn) s l)
+(define-instance-list ((smaller? sym num frac constant) n e)
+  #f)
+
+(define-instance-list ((smaller? sym logn cos_ sin_ tan_ power) n e)
   #t)
 
 ;; ---
@@ -234,15 +250,6 @@
 (define-instance ((smaller? add add) a1 a2)
   (smaller-op-list (add-addends a1) (add-addends a2)))
 
-(define-instance ((smaller? add num) a n)
-  #f)
-
-(define-instance ((smaller? add frac) a f)
-  #f)
-
-(define-instance ((smaller? add constant) a c)
-  #f)
-
 (define-instance ((smaller? add sym) a s)
   (smaller? a (make-add (make-num 0) s)))
 
@@ -252,8 +259,11 @@
 (define-instance ((smaller? add power) a p)
   (smaller? (make-power a (make-num 1)) p))
 
-(define-instance ((smaller? add logn) a l)
-  (smaller? a (make-add (make-num 0) l)))
+(define-instance-list ((smaller? add num frac constant) n e)
+  #f)
+
+(define-instance-list ((smaller? add logn cos_ sin_ tan_) n e)
+  #t)
 
 ;; ---
 ;; mul
@@ -287,17 +297,8 @@
 (define-instance ((smaller? mul mul) m1 m2)
   (smaller-op-list (mul-factors m1) (mul-factors m2)))
 
-(define-instance ((smaller? mul num) m n)
-  #f)
-
-(define-instance ((smaller? mul constant) m c)
-  #f)
-
 (define-instance ((smaller? mul sym) m s)
   (smaller? m (make-mul (make-num 1) s)))
-
-(define-instance ((smaller? mul frac) m f)
-  #f)
 
 (define-instance ((smaller? mul add) m a)
   (smaller? m (make-mul (make-num 1) a)))
@@ -307,6 +308,12 @@
 
 (define-instance ((smaller? mul logn) m l)
   (smaller? m (make-mul (make-num 1) l)))
+
+(define-instance-list ((smaller? mul num constant frac) n e)
+  #f)
+
+(define-instance-list ((smaller? mul cos_ sin_ tan_) n e)
+  #t)
 
 ;; -----
 ;; power
@@ -338,15 +345,6 @@
         (else
           (smaller? b1 b2))))
 
-(define-instance ((smaller? power num) p n)
-  #f)
-
-(define-instance ((smaller? power frac) p f)
-  #f)
-
-(define-instance ((smaller? power constant) p c)
-  #f)
-
 (define-instance ((smaller? power sym) p s)
   (smaller? p (make-power s (make-num 1))))
 
@@ -358,6 +356,12 @@
 
 (define-instance ((smaller? power logn) p l)
   (smaller? p (make-power l (make-num 1))))
+
+(define-instance-list ((smaller? power num frac constant) n e)
+  #f)
+
+(define-instance-list ((smaller? power cos_ sin_ tan_) n e)
+  #t)
 
 ;; ---
 ;; log
@@ -377,15 +381,6 @@
   (smaller-op-list (list (logn-n l1) (logn-base l1))
                    (list (logn-n l2) (logn-base l2))))
 
-(define-instance ((smaller? logn num) l n)
-  #f)
-
-(define-instance ((smaller? logn frac) l f)
-  #f)
-
-(define-instance ((smaller? logn constant) l c)
-  #f)
-
 (define-instance ((smaller? logn add) l a)
   (smaller? (make-add (make-num 0) l) a))
 
@@ -395,7 +390,88 @@
 (define-instance ((smaller? logn power) l p)
   (smaller? (make-power l (make-num 1)) p))
 
-(define-instance ((smaller? logn sym) l s)
+(define-instance-list ((smaller? logn num frac constant sym) n e)
+  #f)
+
+(define-instance-list ((smaller? logn cos_ sin_ tan_) n e)
+  #t)
+
+;; ---
+;; sin
+;; ---
+
+(module+ test
+  (check-smaller (make-sin (make-num 3)) (make-sin (make-num 4)))
+  (check-smaller (make-num (make-num 3)) (make-sin (make-num 3)))
+  (check-smaller (make-sym 'x) (make-sin (make-num 3)))
+  (check-smaller (make-frac (make-num 3) (make-num 4)) (make-sin (make-num 3)))
+  (check-smaller (make-constant 'pi) (make-sin (make-num 3)))
+  (check-smaller (make-add (make-num (make-num 3))) (make-sin (make-num 3)))
+  (check-smaller (make-mul (make-num (make-num 3))) (make-sin (make-num 3)))
+  (check-smaller (make-power (make-sym 'x) (make-num (make-num 3))) 
+                 (make-sin (make-num 3)))
+  )
+
+(define-instance ((smaller? sin_ sin_) s1 s2)
+  (smaller? (sin_-n s1) (sin_-n s2)))
+
+(define-instance-list ((smaller? sin_ num frac constant add mul power sym 
+                                 logn cos_) n e)
+  #f)
+
+(define-instance-list ((smaller? sin_ tan_) n e)
+  #t)
+
+;; ---
+;; cos
+;; ---
+
+(module+ test
+  (check-smaller (make-cos (make-num 3)) (make-cos (make-num 4)))
+  (check-smaller (make-num (make-num 3)) (make-cos (make-num 3)))
+  (check-smaller (make-sym 'x) (make-cos (make-num 3)))
+  (check-smaller (make-frac (make-num 3) (make-num 4)) (make-cos (make-num 3)))
+  (check-smaller (make-constant 'pi) (make-cos (make-num 3)))
+  (check-smaller (make-add (make-num (make-num 3))) (make-cos (make-num 3)))
+  (check-smaller (make-mul (make-num (make-num 3))) (make-cos (make-num 3)))
+  (check-smaller (make-power (make-sym 'x) (make-num (make-num 3))) 
+                 (make-cos (make-num 3)))
+  (check-smaller (make-cos (make-num 3)) (make-sin (make-num 3)))
+  )
+
+(define-instance ((smaller? cos_ cos_) c1 c2)
+  (smaller? (cos_-n c1) (cos_-n c2)))
+
+(define-instance-list ((smaller? cos_ num frac constant add mul power sym 
+                                 logn) n e)
+  #f)
+
+(define-instance-list ((smaller? cos_ sin_ tan_) n e)
+  #t)
+
+;; ---
+;; tan
+;; ---
+
+(module+ test
+  (check-smaller (make-tan (make-num 3)) (make-tan (make-num 4)))
+  (check-smaller (make-num (make-num 3)) (make-tan (make-num 3)))
+  (check-smaller (make-sym 'x) (make-tan (make-num 3)))
+  (check-smaller (make-frac (make-num 3) (make-num 4)) (make-tan (make-num 3)))
+  (check-smaller (make-constant 'pi) (make-tan (make-num 3)))
+  (check-smaller (make-add (make-num (make-num 3))) (make-tan (make-num 3)))
+  (check-smaller (make-mul (make-num (make-num 3))) (make-tan (make-num 3)))
+  (check-smaller (make-power (make-sym 'x) (make-num (make-num 3))) 
+                 (make-tan (make-num 3)))
+  (check-smaller (make-sin (make-num 3)) (make-tan (make-num 3)))
+  (check-smaller (make-cos (make-num 3)) (make-tan (make-num 3)))
+  )
+
+(define-instance ((smaller? tan_ tan_) c1 c2)
+  (smaller? (tan_-n c1) (tan_-n c2)))
+
+(define-instance-list ((smaller? tan_ num frac constant add mul power sym logn 
+                                 sin_ cos_) n e)
   #f)
 
 ; ---------------

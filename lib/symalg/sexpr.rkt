@@ -142,6 +142,48 @@
         (else
           (list 'log s/n (sexpr base)))))
 
+;; ----------
+;; cos-sexpr
+;; ----------
+
+(module+ test
+  (check-equal? (sexpr (make-cos (make-num 3)))
+                '(cos 3))
+  (check-equal? (sexpr (make-cos (make-sym 'x)))
+                '(cos x))
+  )
+
+(define-instance ((sexpr cos_) c)
+  (list 'cos (sexpr (cos_-n c))))
+
+;; ----------
+;; sin-sexpr
+;; ----------
+
+(module+ test
+  (check-equal? (sexpr (make-sin (make-num 3)))
+                '(sin 3))
+  (check-equal? (sexpr (make-sin (make-sym 'x)))
+                '(sin x))
+  )
+
+(define-instance ((sexpr sin_) c)
+  (list 'sin (sexpr (sin_-n c))))
+
+;; ----------
+;; tan-sexpr
+;; ----------
+
+(module+ test
+  (check-equal? (sexpr (make-tan (make-num 3)))
+                '(tan 3))
+  (check-equal? (sexpr (make-tan (make-sym 'x)))
+                '(tan x))
+  )
+
+(define-instance ((sexpr tan_) c)
+  (list 'tan (sexpr (tan_-n c))))
+
 ;; -------------------
 ;; polynomial/si-sexpr
 ;; -------------------

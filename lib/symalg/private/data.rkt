@@ -4,7 +4,7 @@
 
 (provide
   make-num make-sym make-add make-mul make-frac make-power make-logn 
-  make-constant make-polynomial/si
+  make-constant make-polynomial/si make-cos make-sin make-tan
   (struct-out num)
   (struct-out frac)
   (struct-out constant)
@@ -14,6 +14,9 @@
   (struct-out power)
   (struct-out logn)
   (struct-out polynomial/si)
+  (struct-out cos_)
+  (struct-out sin_)
+  (struct-out tan_)
   )
 
 ;; ---------------------------------
@@ -183,11 +186,71 @@
 (define (make-logn n1 n2)
   (logn n1 n2))
 
-;; -----
+;; ----
 ;; logn
-;; -----
+;; ----
 
 (struct logn (n base))
+
+;; --------
+;; make-cos
+;; --------
+
+(module+ test
+  (check-equal? (make-cos (make-num 3))
+                (cos_ (make-num 3)))
+  (check-equal? (make-cos (make-sym 'x))
+                (cos_ (make-sym 'x)))
+  )
+
+(define (make-cos n1)
+  (cos_ n1))
+
+;; ----
+;; cos_
+;; ----
+
+(struct cos_ (n))
+
+;; --------
+;; make-sin
+;; --------
+
+(module+ test
+  (check-equal? (make-sin (make-num 3))
+                (sin_ (make-num 3)))
+  (check-equal? (make-sin (make-sym 'x))
+                (sin_ (make-sym 'x)))
+  )
+
+(define (make-sin n1)
+  (sin_ n1))
+
+;; ----
+;; sin_
+;; ----
+
+(struct sin_ (n))
+
+;; --------
+;; make-tan
+;; --------
+
+(module+ test
+  (check-equal? (make-tan (make-num 3))
+                (tan_ (make-num 3)))
+  (check-equal? (make-tan (make-sym 'x))
+                (tan_ (make-sym 'x)))
+  )
+
+(define (make-tan n1)
+  (tan_ n1))
+
+;; ----
+;; tan_
+;; ----
+
+(struct tan_ (n))
 
 ;; ------------------
 ;; make-polynomial/si

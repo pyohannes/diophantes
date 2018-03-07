@@ -14,7 +14,6 @@
          "private/zero-expr.rkt"
          "private/util.rkt"
          "smaller.rkt")
-         
 
 ;; --------
 ;; simplify
@@ -442,6 +441,42 @@
 (define-instance ((simplify logn) l)
   (make-logn (simplify (logn-n l))
              (simplify (logn-base l))))
+
+;; ------------
+;; cos-simplify
+;; ------------
+
+(module+ test
+  (check-equal? (simplify (parse-sexpr '(cos (+ 1 2))))
+                (parse-sexpr '(cos 3)))
+  )
+
+(define-instance ((simplify cos_) c)
+  (make-cos (simplify (cos_-n c))))
+
+;; ------------
+;; sin-simplify
+;; ------------
+
+(module+ test
+  (check-equal? (simplify (parse-sexpr '(sin (+ 1 2))))
+                (parse-sexpr '(sin 3)))
+  )
+
+(define-instance ((simplify sin_) s)
+  (make-sin (simplify (sin_-n s))))
+
+;; ------------
+;; tan-simplify
+;; ------------
+
+(module+ test
+  (check-equal? (simplify (parse-sexpr '(tan (+ 1 2))))
+                (parse-sexpr '(tan 3)))
+  )
+
+(define-instance ((simplify tan_) s)
+  (make-tan (simplify (tan_-n s))))
 
 ; --------------
 ; apply-simplify

@@ -60,6 +60,12 @@
     (lambda () (parse-sexpr #t)))
   (check-equal? (parse-sexpr '(- x))
                 (make-mul (make-num -1) (make-sym 'x)))
+  (check-equal? (parse-sexpr '(sin x))
+                (make-sin (make-sym 'x)))
+  (check-equal? (parse-sexpr '(cos x))
+                (make-cos (make-sym 'x)))
+  (check-equal? (parse-sexpr '(tan x))
+                (make-tan (make-sym 'x)))
   )
 
 (define (parse-sexpr s)
@@ -81,7 +87,10 @@
               ['- make-sub]
               ['* make-mul]
               ['expt make-power]
-              ['logn make-logn])
+              ['logn make-logn]
+              ['sin make-sin]
+              ['cos make-cos]
+              ['tan make-tan])
             (map parse-sexpr args))]
     [s
       (error "cannot parse expression" s)]))
@@ -156,6 +165,10 @@
                 (make-add (make-sym 'x)
                           (make-mul (make-num -1)
                                     (make-num 1))))
+  (check-equal? (parse-infix "sin(x)")
+                (make-sin (make-sym 'x)))
+  (check-equal? (parse-infix "cos(x)")
+                (make-cos (make-sym 'x)))
   )
 
 (define (parse-infix s)
@@ -196,7 +209,7 @@
 
 (define infix-lexer
   (lexer 
-    [(:or "ln")
+    [(:or "ln" "cos" "sin" "tan")
      (token-FUN (string->symbol lexeme))]
     [(:: alphabetic (:? "_" (:+ (:or alphabetic numeric))))
      (token-SYM (string->symbol lexeme))]

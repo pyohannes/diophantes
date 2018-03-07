@@ -150,3 +150,48 @@
          (format "ln(~a)" s/n))
         (else
           (format "logn(~a, ~a)" s/n (infix/i base resolve)))))
+
+;; -----------
+;; cos-infix/i
+;; -----------
+
+(module+ test
+  (check-equal? (infix (make-cos (make-num 3)))
+                "cos(3)")
+  (check-equal? (infix (make-cos (make-sym 'x)))
+                "cos(x)")
+  )
+
+(define-instance ((infix/i cos_) c resolve)
+  (define s/n (infix/i (cos_-n c) resolve))
+  (format "cos(~a)" s/n))
+
+;; -----------
+;; sin-infix/i
+;; -----------
+
+(module+ test
+  (check-equal? (infix (make-sin (make-num 3)))
+                "sin(3)")
+  (check-equal? (infix (make-sin (make-sym 'x)))
+                "sin(x)")
+  )
+
+(define-instance ((infix/i sin_) c resolve)
+  (define s/n (infix/i (sin_-n c) resolve))
+  (format "sin(~a)" s/n))
+
+;; -----------
+;; tan-infix/i
+;; -----------
+
+(module+ test
+  (check-equal? (infix (make-tan (make-num 3)))
+                "tan(3)")
+  (check-equal? (infix (make-tan (make-sym 'x)))
+                "tan(x)")
+  )
+
+(define-instance ((infix/i tan_) c resolve)
+  (define s/n (infix/i (tan_-n c) resolve))
+  (format "tan(~a)" s/n))

@@ -168,6 +168,60 @@
          (apply (evaluate (logn-base l)) rest)))
   _)
 
+;; --------------
+;; cos-evaluate
+;; --------------
+
+(module+ test
+  (check-equal? ((evaluate (make-cos (make-num 2)))
+                 4)
+                (cos 2))
+  (check-equal? ((evaluate (make-cos (make-sym 'x)))
+                 3)
+                (cos 3))
+  )
+
+(define-instance ((evaluate cos_) c)
+  (define (_ . rest)
+    (cos (apply (evaluate (cos_-n c)) rest)))
+  _)
+
+;; --------------
+;; sin-evaluate
+;; --------------
+
+(module+ test
+  (check-equal? ((evaluate (make-sin (make-num 2)))
+                 4)
+                (sin 2))
+  (check-equal? ((evaluate (make-sin (make-sym 'x)))
+                 3)
+                (sin 3))
+  )
+
+(define-instance ((evaluate sin_) c)
+  (define (_ . rest)
+    (sin (apply (evaluate (sin_-n c)) rest)))
+  _)
+
+;; --------------
+;; tan-evaluate
+;; --------------
+
+(module+ test
+  (check-equal? ((evaluate (make-tan (make-num 2)))
+                 4)
+                (tan 2))
+  (check-equal? ((evaluate (make-tan (make-sym 'x)))
+                 3)
+                (tan 3))
+  )
+
+(define-instance ((evaluate tan_) c)
+  (define (_ . rest)
+    (tan (apply (evaluate (tan_-n c)) rest)))
+  _)
+
 ;; ----------------------
 ;; polynomial/si-evaluate
 ;; ----------------------

@@ -144,6 +144,45 @@
   (cons l (append (preorder (logn-base l))
                   (preorder (logn-n l)))))
 
+;; ------------
+;; cos-preorder
+;; ------------
+
+(module+ test
+  (check-equal? (preorder (make-cos (make-num 3)))
+                (list (make-cos (make-num 3))
+                      (make-num 3)))
+  )
+
+(define-instance ((preorder cos_) c)
+  (cons c (append (preorder (cos_-n c)))))
+
+;; ------------
+;; sin-preorder
+;; ------------
+
+(module+ test
+  (check-equal? (preorder (make-sin (make-num 3)))
+                (list (make-sin (make-num 3))
+                      (make-num 3)))
+  )
+
+(define-instance ((preorder sin_) s)
+  (cons s (append (preorder (sin_-n s)))))
+
+;; ------------
+;; tan-preorder
+;; ------------
+
+(module+ test
+  (check-equal? (preorder (make-tan (make-num 3)))
+                (list (make-tan (make-num 3))
+                      (make-num 3)))
+  )
+
+(define-instance ((preorder tan_) s)
+  (cons s (append (preorder (tan_-n s)))))
+
 ;; -------------------
 ;; polynomial/si-preorder
 ;; -------------------
