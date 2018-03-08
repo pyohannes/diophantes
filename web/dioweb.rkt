@@ -43,14 +43,19 @@
 (define (<body>)
   (define formula (formula-from-command-line))
   (define formulaoutput
-    (if (non-empty-string? formula)
-        (<formulaoutput> formula)
-        '()))
+    (with-handlers ([exn:fail? <errormessage>])
+      (if (non-empty-string? formula)
+          (<formulaoutput> formula)
+          '())))
   (list-non-null
     'body
     `(h1 ,(make-cdata #f #f "&Delta;iophantus"))
     (<formulainput> formula)
     formulaoutput))
+
+(define (<errormessage> e)
+  `(p ((class "error"))
+      ,(exn-message e)))
 
 (define (<formulainput> formula)
   (define js/submit "diowebOpen(document.getElementById('formula').value);")

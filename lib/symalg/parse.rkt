@@ -182,7 +182,8 @@
   (parser
     (start exp)
     (end EOF)
-    (error void)
+    (error (lambda (tok-ok? tok-name tok-value)
+             (error (format "Parsing error at token '~a'." tok-name))))
     (tokens value-tokens op-tokens)
     (precs (left - +)
            (left * /)

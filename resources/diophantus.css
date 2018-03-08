@@ -25,6 +25,11 @@ input[type=text] {
     padding-left: 0.5em;
 }
 
+p.error {
+    color: red;
+    text-align: center;
+}
+
 table {
     border-collapse: collapse;
 }
