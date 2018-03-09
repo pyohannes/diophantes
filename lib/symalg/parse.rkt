@@ -169,6 +169,9 @@
                 (make-sin (make-sym 'x)))
   (check-equal? (parse-infix "cos(x)")
                 (make-cos (make-sym 'x)))
+  (check-exn 
+    exn:fail?
+    (lambda () (parse-infix "3 ** 4")))
   )
 
 (define (parse-infix s)

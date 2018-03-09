@@ -150,7 +150,14 @@
 (define (parse s)
   (with-handlers ([exn:fail? (lambda (e)
                                (parse-infix s))])
-    (parse-sexpr (read (open-input-string s)))))
+    (parse-sexpr (string->sexpr s))))
+
+(define (string->sexpr s)
+  (define port (open-input-string s))
+  (define sexpr (read port))
+  (if (eof-object? (read port))
+      sexpr
+      (error "Not a valid s-expressions: " s)))
 
 ; -----------------
 ; main invocation
