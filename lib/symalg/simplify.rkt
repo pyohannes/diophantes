@@ -59,13 +59,18 @@
                 (make-num 2))
   (check-equal? (simplify (make-frac 4 8))
                 (make-frac 1 2))
+  ;; No division by zero
+  (check-exn 
+    exn:fail?
+    (lambda () (simplify (make-frac 3 0))))
   )
 
 (define-instance ((simplify frac) f)
   (apply-simplify f
                   frac?
                   (list frac-simplify/standard
-                        frac-simplify/num)))
+                        frac-simplify/num
+                        frac-simplify/zerodiv)))
 
 (define (frac-simplify/standard f)
   (define num (frac-num f))
@@ -79,6 +84,11 @@
 (define (frac-simplify/num f)
   (if (= (frac-denom f) 1)
       (make-num (frac-num f))
+      f))
+
+(define (frac-simplify/zerodiv f)
+  (if (= (frac-denom f) 0)
+      (error "Division by zero")
       f))
 
 ;; -----------------
@@ -278,6 +288,11 @@
   ;; ASAE-4.4
   (check-equal? (simplify (make-mul (make-sym 'y) (make-sym 'x) (make-num 3)))
                 (make-mul (make-num 3) (make-sym 'x) (make-sym 'y)))
+
+  ;; No division by zero
+  (check-exn 
+    exn:fail?
+    (lambda () (simplify (parse-sexpr '(/ 3 (- x x))))))
   )
 
 (define-instance ((simplify mul) m)
@@ -377,6 +392,11 @@
                 (make-num 1))
   (check-equal? (simplify (make-power (make-num 0) (make-sym 'x)))
                 (make-num 0))
+
+  ;; No division by zero
+  (check-exn 
+    exn:fail?
+    (lambda () (simplify (make-power (make-num 0) (make-num -1)))))
   )
 
 (define-instance ((simplify power) p)
@@ -397,8 +417,11 @@
      b]
     [(list b (== (make-num 0))) 
      (make-num 1)]
-    [(list (== (make-num 0)) _) 
-     (make-num 0)]
+    [(list (== (make-num 0)) exponent) 
+     (if (and (num? exponent)
+              (negative? (num-val exponent)))
+         (error "Division by zero")
+         (make-num 0))]
     [(list (== (make-num 1)) _) 
      (make-num 1)]
     [(list (? constant? b) (? constant? e))
