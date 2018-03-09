@@ -107,7 +107,8 @@
                target: '#plot',
                data: [{
                    fn: '~a',
-                   graphType: 'polyline'
+                   graphType: 'polyline',
+                   color: 'red'
                }]
            })" (infix f #t))))))
 
