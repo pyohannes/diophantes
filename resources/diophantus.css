@@ -14,13 +14,12 @@ input[type=submit] {
     height: 3em;
     width: 3em;
     border: 1px solid green;
-    border-radius: 0 1em 1em 0;
+    text-align: center;
 }
 
 input[type=text] {
     height: 3em;
     width: 40%;
-    border-radius: 1em 0 0 1em;
     border: 1px solid green;
     padding-left: 0.5em;
 }

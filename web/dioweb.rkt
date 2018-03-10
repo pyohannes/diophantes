@@ -58,13 +58,12 @@
       ,(exn-message e)))
 
 (define (<formulainput> formula)
-  (define js/submit "diowebOpen(document.getElementById('formula').value);")
-  `(div
+  (define js/submit "javascript:diowebOpen(document.getElementById('formula').value);")
+  `(form ((action ,js/submit))
      (input ((type "text")
              (id "formula")
              (value ,formula)))
      (input ((type "submit")
-             (onclick ,js/submit)
              (value ">")))))
 
 (define (<formulaoutput> formula)
