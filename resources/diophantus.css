@@ -1,11 +1,9 @@
+@import url('https://fonts.googleapis.com/css?family=Roboto');
+
 body {
     margin: 0 auto;
     text-align: center;
-}
-
-table {
-    margin: 0 auto;
-    margin-top: 2em;
+    font-family: 'Roboto', sans-serif;
 }
 
 input[type=submit] {
@@ -19,9 +17,31 @@ input[type=submit] {
 
 input[type=text] {
     height: 3em;
-    width: 40%;
+    width: calc(600px - 3em);
     border: 1px solid green;
     padding-left: 0.5em;
+}
+
+table.base {
+    border-collapse: collapse;
+    margin: 0 auto;
+}
+
+table.main {
+    margin-top: 2em;
+    width: 600px;
+}
+
+table.help {
+}
+
+.header td {
+    border-bottom: 1px solid green;
+}
+
+.help td {
+    padding-left: 1em;
+    padding-right: 1em;
 }
 
 p.error {
@@ -29,26 +49,63 @@ p.error {
     text-align: center;
 }
 
-table {
-    border-collapse: collapse;
-}
-
-tr.caption {
-    font-size: small;
-}
-
 .caption td {
+    font-size: small;
     border-bottom: 1px solid green;
 }
 
-tr.formula {
-    text-align: center;
-}
-
 .formula td {
+    text-align: center;
     padding-top: 0.5em;
 }
 
-a.formula {
+a.base {
+    color: green;
+    text-decoration: none;
+}
+
+a.base:hover {
+    text-decoration: underline;
+}
+
+a.navbar {
+    padding-left: 1em;
+}
+
+.formula a {
     color: black;
+}
+
+span.header {
+    width: 600px;
+    text-align: right;
+    padding-top: 0.5em;
+    display: inline-block;
+}
+
+form {
+    width: 600px;
+    text-align: right;
+    display: inline-block;
+}
+
+div.textflow {
+    margin: 0 auto;
+    text-align: left;
+    width: 600px;
+}
+
+h1 {
+    font-weight: normal;
+    letter-spacing: 0.1em;
+}
+
+h2 {
+    border-bottom: 1px solid green;
+    font-weight: normal;
+}
+
+p.formula {
+    font-family: fixed;
+    text-align: center;
 }
